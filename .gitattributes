@@ -1,0 +1,18 @@
+# Força o Git a gerenciar os finais de linha automaticamente
+* text=auto
+
+# Garante que arquivos de texto específicos sempre usem LF ao serem salvos no repositório
+*.js text
+*.jsx text
+*.html text
+*.css text
+*.json text
+*.md text
+*.svg text
+
+# Denota que arquivos binários não devem ser modificados
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
