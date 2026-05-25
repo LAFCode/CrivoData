@@ -1,370 +1,580 @@
-import React from 'react'
-import { Plus, Trash2, FileCode } from 'lucide-react'
+import React, { useState } from 'react';
+import { 
+  FileText, 
+  Plus, 
+  Trash2, 
+  Check, 
+  AlertTriangle, 
+  ChevronDown, 
+  ChevronUp, 
+  FileCode,
+  Sparkles
+} from 'lucide-react';
 
-export default function WorkflowValidationSection({ form, setForm }) {
-  
-  const handleChange = (e) => {
-    const { name, value, type, checked } = e.target
-    setForm((prev) => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value,
-    }))
-  }
+// Simulando o seu componente personalizado de Input (@/shared/components/ui/Input)
+// Quando for utilizar no seu sistema, você pode remover esta declaração local e 
+// descomentar o import original: import Input from '@/shared/components/ui/Input'
+const Input = ({ className = '', ...props }) => {
+  return (
+    <input
+      {...props}
+      className={`
+        h-11
+        w-full
+        rounded-xl
+        border
+        border-zinc-200
+        bg-white
+        px-3
+        text-sm
+        outline-none
+        transition-all
+        focus:border-zinc-400
+        focus:ring-1
+        focus:ring-zinc-450
+        placeholder:text-zinc-400
+        ${className}
+      `}
+    />
+  );
+};
 
-  // --- GERENCIAMENTO DE ARQUIVOS (PAI) ---
-  const addFileBlock = () => {
-    setForm((prev) => ({
-      ...prev,
-      files: [
-        ...prev.files,
-        {
-          file_pattern: '',
-          required_columns: '',
-          not_null_columns: '',
-          column_types: [],
-          custom_rules: [],
-        },
+export default function WorkflowFilesSection() {
+  // Estado que gerencia a lista de arquivos e suas respectivas validações internas
+  const [files, setFiles] = useState([
+    {
+      id: '1',
+      name: 'Relatório de Vendas Semanal',
+      pattern: 'vendas_*.csv',
+      required: true,
+      maxSize: 15, // MB
+      allowedFormats: ['csv', 'xlsx'],
+      columns: [
+        { id: 'c1', name: 'id_venda', type: 'number', required: true },
+        { id: 'c2', name: 'valor_total', type: 'number', required: true },
+        { id: 'c3', name: 'data_pagamento', type: 'date', required: true },
+        { id: 'c4', name: 'cpf_cliente', type: 'string', required: false }
       ],
-    }))
-  }
+      customRules: [
+        { id: 'r1', field: 'valor_total', operator: 'greater_than', value: '0', message: 'O valor não pode ser negativo' }
+      ],
+      isExpanded: true
+    },
+    {
+      id: '2',
+      name: 'Cadastro de Novos Clientes',
+      pattern: 'clientes_cadastro_YYYYMMDD.xlsx',
+      required: false,
+      maxSize: 5, // MB
+      allowedFormats: ['xlsx'],
+      columns: [
+        { id: 'c1', name: 'nome', type: 'string', required: true },
+        { id: 'c2', name: 'email', type: 'string', required: true }
+      ],
+      customRules: [],
+      isExpanded: false
+    }
+  ]);
 
-  const removeFileBlock = (fileIdx) => {
-    setForm((prev) => ({
-      ...prev,
-      files: prev.files.filter((_, idx) => idx !== fileIdx),
-    }))
-  }
+  const [notification, setNotification] = useState(null);
 
-  const handleFileMetaChange = (fileIdx, field, value) => {
-    setForm((prev) => {
-      const updatedFiles = [...prev.files]
-      updatedFiles[fileIdx] = { ...updatedFiles[fileIdx], [field]: value }
-      return { ...prev, files: updatedFiles }
-    })
-  }
+  const showToast = (message, type = 'success') => {
+    setNotification({ message, type });
+    setTimeout(() => setNotification(null), 4000);
+  };
 
-  // --- GERENCIAMENTO DE TIPOS DE COLUNA (POR ARQUIVO) ---
-  const addColumnType = (fileIdx) => {
-    setForm((prev) => {
-      const updatedFiles = [...prev.files]
-      updatedFiles[fileIdx].column_types = [
-        ...updatedFiles[fileIdx].column_types,
-        { column: '', type: 'string' },
-      ]
-      return { ...prev, files: updatedFiles }
-    })
-  }
+  // Manipuladores para gerenciar os arquivos
+  const handleAddFile = () => {
+    const newId = Date.now().toString();
+    const newFile = {
+      id: newId,
+      name: `Novo Arquivo Esperado (${files.length + 1})`,
+      pattern: 'nome_arquivo_*.csv',
+      required: true,
+      maxSize: 10,
+      allowedFormats: ['csv'],
+      columns: [{ id: '1', name: 'id', type: 'number', required: true }],
+      customRules: [],
+      isExpanded: true
+    };
+    
+    // Recolhe os outros arquivos para dar foco ao novo que acabou de ser criado
+    setFiles(files.map(f => ({ ...f, isExpanded: false })).concat(newFile));
+    showToast('Novo arquivo adicionado!');
+  };
 
-  const removeColumnType = (fileIdx, typeIdx) => {
-    setForm((prev) => {
-      const updatedFiles = [...prev.files]
-      updatedFiles[fileIdx].column_types = updatedFiles[fileIdx].column_types.filter(
-        (_, idx) => idx !== typeIdx
-      )
-      return { ...prev, files: updatedFiles }
-    })
-  }
+  const handleRemoveFile = (id, event) => {
+    event.stopPropagation();
+    if (files.length === 1) {
+      showToast('O fluxo necessita de ao menos um arquivo esperado.', 'error');
+      return;
+    }
+    setFiles(files.filter(f => f.id !== id));
+    showToast('Arquivo removido.');
+  };
 
-  const handleColumnTypeChange = (fileIdx, typeIdx, field, value) => {
-    setForm((prev) => {
-      const updatedFiles = [...prev.files]
-      const updatedTypes = [...updatedFiles[fileIdx].column_types]
-      updatedTypes[typeIdx] = { ...updatedTypes[typeIdx], [field]: value }
-      updatedFiles[fileIdx].column_types = updatedTypes
-      return { ...prev, files: updatedFiles }
-    })
-  }
+  const toggleExpand = (id) => {
+    setFiles(files.map(f => f.id === id ? { ...f, isExpanded: !f.isExpanded } : f));
+  };
 
-  // --- GERENCIAMENTO DE REGRAS CUSTOMIZADAS (POR ARQUIVO) ---
-  const addCustomRule = (fileIdx) => {
-    setForm((prev) => {
-      const updatedFiles = [...prev.files]
-      updatedFiles[fileIdx].custom_rules = [
-        ...updatedFiles[fileIdx].custom_rules,
-        { column: '', operator: '>=', value: '' },
-      ]
-      return { ...prev, files: updatedFiles }
-    })
-  }
+  const handleUpdateFile = (id, fields) => {
+    setFiles(files.map(f => f.id === id ? { ...f, ...fields } : f));
+  };
 
-  const removeCustomRule = (fileIdx, ruleIdx) => {
-    setForm((prev) => {
-      const updatedFiles = [...prev.files]
-      updatedFiles[fileIdx].custom_rules = updatedFiles[fileIdx].custom_rules.filter(
-        (_, idx) => idx !== ruleIdx
-      )
-      return { ...prev, files: updatedFiles }
-    })
-  }
+  // Manipuladores de Colunas do Arquivo Selecionado
+  const handleAddColumn = (fileId) => {
+    setFiles(files.map(f => {
+      if (f.id === fileId) {
+        return {
+          ...f,
+          columns: [...f.columns, { id: Date.now().toString(), name: 'nova_coluna', type: 'string', required: false }]
+        };
+      }
+      return f;
+    }));
+  };
 
-  const handleCustomRuleChange = (fileIdx, ruleIdx, field, value) => {
-    setForm((prev) => {
-      const updatedFiles = [...prev.files]
-      const updatedRules = [...updatedFiles[fileIdx].custom_rules]
-      updatedRules[ruleIdx] = { ...updatedRules[ruleIdx], [field]: value }
-      updatedFiles[fileIdx].custom_rules = updatedRules
-      return { ...prev, files: updatedFiles }
-    })
-  }
+  const handleUpdateColumn = (fileId, colId, fields) => {
+    setFiles(files.map(f => {
+      if (f.id === fileId) {
+        return {
+          ...f,
+          columns: f.columns.map(c => c.id === colId ? { ...c, ...fields } : c)
+        };
+      }
+      return f;
+    }));
+  };
+
+  const handleRemoveColumn = (fileId, colId) => {
+    setFiles(files.map(f => {
+      if (f.id === fileId) {
+        return {
+          ...f,
+          columns: f.columns.filter(c => c.id !== colId)
+        };
+      }
+      return f;
+    }));
+  };
+
+  // Manipuladores de Condições / Regras Personalizadas
+  const handleAddRule = (fileId) => {
+    setFiles(files.map(f => {
+      if (f.id === fileId) {
+        const availableCols = f.columns;
+        const defaultField = availableCols.length > 0 ? availableCols[0].name : '';
+        return {
+          ...f,
+          customRules: [...f.customRules, { 
+            id: Date.now().toString(), 
+            field: defaultField, 
+            operator: 'not_null', 
+            value: '', 
+            message: 'Valor inválido encontrado' 
+          }]
+        };
+      }
+      return f;
+    }));
+  };
+
+  const handleUpdateRule = (fileId, ruleId, fields) => {
+    setFiles(files.map(f => {
+      if (f.id === fileId) {
+        return {
+          ...f,
+          customRules: f.customRules.map(r => r.id === ruleId ? { ...r, ...fields } : r)
+        };
+      }
+      return f;
+    }));
+  };
+
+  const handleRemoveRule = (fileId, ruleId) => {
+    setFiles(files.map(f => {
+      if (f.id === fileId) {
+        return {
+          ...f,
+          customRules: f.customRules.filter(r => r.id !== ruleId)
+        };
+      }
+      return f;
+    }));
+  };
+
+  const toggleFormat = (fileId, format) => {
+    setFiles(files.map(f => {
+      if (f.id === fileId) {
+        const allowedFormats = f.allowedFormats.includes(format)
+          ? f.allowedFormats.filter(fmt => fmt !== format)
+          : [...f.allowedFormats, format];
+        return { ...f, allowedFormats };
+      }
+      return f;
+    }));
+  };
 
   return (
-    <div className="space-y-8 animate-fade-in">
-      <div>
-        <h3 className="text-lg font-medium text-zinc-900">Validation Rules</h3>
-        <p className="text-sm text-zinc-500">
-          Configure multi-file ingestion packages and specify structural or logic rules for each file type.
-        </p>
-      </div>
-
-      {/* CONFIGURAÇÕES GERAIS DO WORKFLOW */}
-      <div className="grid gap-4 sm:grid-cols-2 bg-zinc-50 p-4 rounded-2xl border border-zinc-200">
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="validation_type" className="text-sm font-medium text-zinc-700">
-            Validation Type
-          </label>
-          <select
-            id="validation_type"
-            name="validation_type"
-            value={form.validation_type}
-            onChange={handleChange}
-            className="rounded-lg border border-zinc-200 bg-white p-2.5 text-sm text-zinc-900 outline-none focus:border-zinc-900"
-          >
-            <option value="strict">Strict (Fail package on any mismatch)</option>
-            <option value="permissive">Permissive (Log errors, continue execution)</option>
-          </select>
+    <div className="w-full bg-white font-sans text-zinc-800">
+      
+      {/* Notificação flutuante de feedback */}
+      {notification && (
+        <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-xl shadow-md border text-xs font-medium transition-all duration-300 ${
+          notification.type === 'error' ? 'bg-rose-50 border-rose-100 text-rose-800' : 
+          notification.type === 'info' ? 'bg-zinc-100 border-zinc-200 text-zinc-800' :
+          'bg-zinc-900 border-zinc-900 text-white'
+        }`}>
+          {notification.type === 'error' ? <AlertTriangle className="h-4 w-4 text-rose-600" /> : <Check className="h-4 w-4" />}
+          <span>{notification.message}</span>
         </div>
+      )}
 
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="max_error_threshold" className="text-sm font-medium text-zinc-700">
-            Global Max Error Threshold (Rows)
-          </label>
-          <input
-            id="max_error_threshold"
-            type="number"
-            name="max_error_threshold"
-            min="0"
-            value={form.max_error_threshold}
-            onChange={handleChange}
-            className="rounded-lg border border-zinc-200 p-2.5 text-sm text-zinc-900 outline-none focus:border-zinc-900"
-            placeholder="0"
-          />
-        </div>
-      </div>
-
-      {/* SEÇÃO DE ARQUIVOS DINÂMICOS */}
-      <div className="space-y-6">
-        <div className="flex items-center justify-between border-b border-zinc-100 pb-4">
-          <h4 className="text-sm font-semibold text-zinc-900 uppercase tracking-wider">Expected Files Schema</h4>
-          <button
+      <div className="space-y-6 border-t border-zinc-100 pt-6">
+        
+        {/* CABEÇALHO */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-semibold text-zinc-900">
+              Expected Files & Validation
+            </h2>
+            <p className="mt-1 text-sm text-zinc-500">
+              Configure expected data files and their integrity constraints
+            </p>
+          </div>
+          
+          <button 
             type="button"
-            onClick={addFileBlock}
-            className="flex items-center gap-1.5 text-xs font-medium text-white bg-zinc-900 hover:bg-zinc-800 rounded-lg px-3 py-2 cursor-pointer shadow-sm transition-all"
+            onClick={handleAddFile}
+            className="flex items-center justify-center gap-2 bg-zinc-900 hover:bg-zinc-800 text-white px-4 h-11 rounded-xl text-xs font-semibold transition-colors shrink-0"
           >
-            <Plus className="h-4 w-4" /> Add Expected File
+            <Plus className="h-4 w-4" />
+            Add Expected File
           </button>
         </div>
 
-        {form.files.length === 0 ? (
-          <div className="py-12 border-2 border-dashed border-zinc-200 rounded-2xl text-center bg-zinc-50">
-            <p className="text-sm text-zinc-500 font-medium">No files specified for this workflow yet.</p>
-            <p className="text-xs text-zinc-400 mt-1">Click the button above to add the first file criteria.</p>
-          </div>
-        ) : (
-          <div className="space-y-8">
-            {form.files.map((file, fileIdx) => (
-              <div key={fileIdx} className="relative border border-zinc-200 rounded-2xl p-6 bg-white shadow-sm space-y-6">
-                
-                {/* HEADER DO ARQUIVO */}
-                <div className="flex items-start justify-between gap-4 border-b border-zinc-100 pb-4">
-                  <div className="flex items-center gap-3 flex-1">
-                    <div className="p-2 bg-zinc-100 rounded-xl text-zinc-700">
-                      <FileCode className="h-5 w-5" />
+        {/* CONTAINER DA LISTA DE ARQUIVOS */}
+        <div className="space-y-4">
+          {files.map((file) => (
+            <div 
+              key={file.id} 
+              className={`border rounded-xl transition-all duration-200 ${
+                file.isExpanded 
+                  ? 'border-zinc-300 ring-4 ring-zinc-50 bg-white' 
+                  : 'border-zinc-200 hover:border-zinc-300 bg-zinc-50/20'
+              }`}
+            >
+              {/* ACCORDION TRIGGER */}
+              <div 
+                onClick={() => toggleExpand(file.id)}
+                className="p-4 flex items-center justify-between cursor-pointer select-none"
+              >
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <div className={`p-2 rounded-lg ${file.isExpanded ? 'bg-zinc-900 text-white' : 'bg-zinc-100 text-zinc-500'}`}>
+                    <FileCode className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-semibold text-zinc-900 text-sm truncate">{file.name}</span>
+                      {file.required ? (
+                        <span className="bg-rose-50 text-rose-700 border border-rose-100 text-[10px] px-1.5 py-0.5 rounded-md font-semibold">
+                          Required
+                        </span>
+                      ) : (
+                        <span className="bg-zinc-100 text-zinc-600 border border-zinc-200 text-[10px] px-1.5 py-0.5 rounded-md font-semibold">
+                          Optional
+                        </span>
+                      )}
                     </div>
-                    <div className="flex-1 grid gap-1.5 sm:grid-cols-2">
-                      <div className="flex flex-col gap-1">
-                        <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">File Pattern / Name</label>
-                        <input
-                          type="text"
-                          placeholder="e.g. users_data_*.csv"
-                          value={file.file_pattern}
-                          onChange={(e) => handleFileMetaChange(fileIdx, 'file_pattern', e.target.value)}
-                          className="rounded-lg border border-zinc-200 p-2 text-sm text-zinc-900 outline-none focus:border-zinc-900"
+                    <span className="text-xs text-zinc-400 font-mono mt-1 block truncate">
+                      Filename Match: {file.pattern} • {file.columns.length} schema columns defined
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 ml-4">
+                  <div className="hidden md:flex items-center gap-1">
+                    {file.allowedFormats.map(fmt => (
+                      <span key={fmt} className="text-[10px] font-bold font-mono bg-zinc-100 border border-zinc-200 text-zinc-600 px-2 py-0.5 rounded-md uppercase">
+                        {fmt}
+                      </span>
+                    ))}
+                  </div>
+                  
+                  <button 
+                    type="button"
+                    onClick={(e) => handleRemoveFile(file.id, e)}
+                    className="p-1.5 text-zinc-400 hover:text-rose-600 rounded-lg hover:bg-zinc-50 transition-colors"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                  
+                  <div className="text-zinc-400">
+                    {file.isExpanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+                  </div>
+                </div>
+              </div>
+
+              {/* ACCORDION CONTENT */}
+              {file.isExpanded && (
+                <div className="border-t border-zinc-100 p-5 bg-white rounded-b-xl space-y-6">
+                  
+                  {/* Linha 1: Nome e Pattern usando o seu Input */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold text-zinc-700 uppercase tracking-wider block">
+                        File Display Name
+                      </label>
+                      <Input 
+                        type="text"
+                        value={file.name}
+                        onChange={(e) => handleUpdateFile(file.id, { name: e.target.value })}
+                        placeholder="Ex: Weekly billing report"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold text-zinc-700 uppercase tracking-wider block">
+                        Filename Pattern (Regex)
+                      </label>
+                      <Input 
+                        type="text"
+                        value={file.pattern}
+                        onChange={(e) => handleUpdateFile(file.id, { pattern: e.target.value })}
+                        placeholder="Ex: billing_*.csv"
+                        className="font-mono"
+                      />
+                    </div>
+
+                    <div className="flex items-center pt-5">
+                      <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                        <input 
+                          type="checkbox"
+                          checked={file.required}
+                          onChange={(e) => handleUpdateFile(file.id, { required: e.target.checked })}
+                          className="rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900 h-4 w-4 cursor-pointer"
+                        />
+                        <span className="text-sm font-medium text-zinc-700">File is mandatory for completion</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Formatos e Tamanhos */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-zinc-50/50 rounded-xl p-4.5 border border-zinc-150">
+                    <div className="space-y-2.5">
+                      <label className="text-xs font-semibold text-zinc-700 uppercase tracking-wider block">
+                        Allowed File Formats
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        {['csv', 'xlsx', 'txt', 'xml'].map((format) => {
+                          const active = file.allowedFormats.includes(format);
+                          return (
+                            <button
+                              key={format}
+                              type="button"
+                              onClick={() => toggleFormat(file.id, format)}
+                              className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase border transition-all ${
+                                active 
+                                  ? 'bg-zinc-900 border-zinc-900 text-white shadow-xs' 
+                                  : 'bg-white border-zinc-200 text-zinc-600 hover:bg-zinc-100'
+                              }`}
+                            >
+                              {format}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <label className="text-xs font-semibold text-zinc-700 uppercase tracking-wider">Max Size Limit</label>
+                        <span className="text-xs font-bold text-zinc-950">{file.maxSize} MB</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <input 
+                          type="range" 
+                          min="1" 
+                          max="100" 
+                          value={file.maxSize}
+                          onChange={(e) => handleUpdateFile(file.id, { maxSize: parseInt(e.target.value) })}
+                          className="w-full h-1 bg-zinc-200 rounded-lg appearance-none cursor-pointer accent-zinc-900"
                         />
                       </div>
                     </div>
                   </div>
-                  
-                  <button
-                    type="button"
-                    onClick={() => removeFileBlock(fileIdx)}
-                    className="text-zinc-400 hover:text-red-500 p-1.5 border border-zinc-100 hover:border-red-100 hover:bg-red-50 rounded-xl transition-all cursor-pointer mt-5"
-                    title="Remove File Configuration"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
 
-                {/* RESTRIÇÕES ESTRUTURAIS DO ARQUIVO */}
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-semibold text-zinc-700">Required Columns (Presence)</label>
-                    <input
-                      type="text"
-                      placeholder="id, name, email"
-                      value={file.required_columns}
-                      onChange={(e) => handleFileMetaChange(fileIdx, 'required_columns', e.target.value)}
-                      className="rounded-lg border border-zinc-200 p-2.5 text-xs text-zinc-900 outline-none focus:border-zinc-900"
-                    />
-                  </div>
-
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-semibold text-zinc-700">Not-Null Columns</label>
-                    <input
-                      type="text"
-                      placeholder="id, status"
-                      value={file.not_null_columns}
-                      onChange={(e) => handleFileMetaChange(fileIdx, 'not_null_columns', e.target.value)}
-                      className="rounded-lg border border-zinc-200 p-2.5 text-xs text-zinc-900 outline-none focus:border-zinc-900"
-                    />
-                  </div>
-                </div>
-
-                {/* TIPOS DE COLUNA INTERNOS */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-semibold text-zinc-700 uppercase tracking-wider">Column Typing</label>
-                    <button
-                      type="button"
-                      onClick={() => addColumnType(fileIdx)}
-                      className="flex items-center gap-1 text-xs text-zinc-900 hover:text-zinc-600 font-medium cursor-pointer"
-                    >
-                      <Plus className="h-3 w-3" /> Add Type Rule
-                    </button>
-                  </div>
-                  
-                  {file.column_types.length === 0 ? (
-                    <p className="text-xs text-zinc-400 italic bg-zinc-50 border border-dashed border-zinc-100 rounded-xl p-3 text-center">
-                      No explicit column types enforced for this file.
-                    </p>
-                  ) : (
-                    <div className="grid gap-2">
-                      {file.column_types.map((typeRow, typeIdx) => (
-                        <div key={typeIdx} className="flex items-center gap-2 bg-zinc-50 p-1.5 border border-zinc-100 rounded-lg">
-                          <input
-                            type="text"
-                            placeholder="Column name"
-                            value={typeRow.column}
-                            onChange={(e) => handleColumnTypeChange(fileIdx, typeIdx, 'column', e.target.value)}
-                            className="flex-1 bg-white border border-zinc-200 rounded p-1 text-xs text-zinc-900 outline-none focus:border-zinc-900"
-                          />
-                          <select
-                            value={typeRow.type}
-                            onChange={(e) => handleColumnTypeChange(fileIdx, typeIdx, 'type', e.target.value)}
-                            className="w-36 bg-white border border-zinc-200 rounded p-1 text-xs text-zinc-900 outline-none focus:border-zinc-900"
-                          >
-                            <option value="string">String</option>
-                            <option value="integer">Integer</option>
-                            <option value="decimal">Decimal</option>
-                            <option value="boolean">Boolean</option>
-                            <option value="date">Date</option>
-                            <option value="timestamp">Timestamp</option>
-                          </select>
-                          <button
-                            type="button"
-                            onClick={() => removeColumnType(fileIdx, typeIdx)}
-                            className="text-zinc-400 hover:text-red-500 p-1 cursor-pointer"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                      ))}
+                  {/* Mapeamento de Colunas do Schema */}
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-400">
+                        File Schema Columns ({file.columns.length})
+                      </h4>
+                      <button 
+                        type="button"
+                        onClick={() => handleAddColumn(file.id)}
+                        className="text-xs font-semibold text-zinc-900 hover:text-zinc-600 flex items-center gap-1 transition-colors"
+                      >
+                        <Plus className="h-3.5 w-3.5" /> Add Column
+                      </button>
                     </div>
-                  )}
-                </div>
 
-                {/* REGRAS CUSTOMIZADAS INTERNAS */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-semibold text-zinc-700 uppercase tracking-wider">Row-Level Business Rules</label>
-                    <button
-                      type="button"
-                      onClick={() => addCustomRule(fileIdx)}
-                      className="flex items-center gap-1 text-xs text-zinc-900 hover:text-zinc-600 font-medium cursor-pointer"
-                    >
-                      <Plus className="h-3 w-3" /> Add Logical Assertion
-                    </button>
+                    <div className="border border-zinc-200 rounded-xl overflow-hidden shadow-xs">
+                      <table className="w-full text-left border-collapse">
+                        <thead>
+                          <tr className="bg-zinc-50 border-b border-zinc-200">
+                            <th className="px-3.5 py-3 text-xs font-bold text-zinc-600 uppercase tracking-wider">Header Name</th>
+                            <th className="px-3.5 py-3 text-xs font-bold text-zinc-600 uppercase tracking-wider w-48">Data Type</th>
+                            <th className="px-3.5 py-3 text-xs font-bold text-zinc-600 uppercase tracking-wider w-32">Required</th>
+                            <th className="px-3.5 py-3 text-xs font-bold text-zinc-600 uppercase tracking-wider w-12"></th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {file.columns.map((col) => (
+                            <tr key={col.id} className="border-b last:border-0 border-zinc-150 hover:bg-zinc-50/20 transition-colors">
+                              <td className="px-3.5 py-2">
+                                <input 
+                                  type="text"
+                                  value={col.name}
+                                  onChange={(e) => handleUpdateColumn(file.id, col.id, { name: e.target.value })}
+                                  className="w-full bg-transparent border-none focus:bg-white focus:ring-1 focus:ring-zinc-300 outline-none text-xs font-mono py-1.5 px-2 rounded-lg"
+                                  placeholder="column_name"
+                                />
+                              </td>
+                              <td className="px-3.5 py-2">
+                                <select
+                                  value={col.type}
+                                  onChange={(e) => handleUpdateColumn(file.id, col.id, { type: e.target.value })}
+                                  className="text-xs bg-white border border-zinc-200 rounded-lg px-2.5 py-1.5 outline-none w-full focus:ring-1 focus:ring-zinc-300"
+                                >
+                                  <option value="string">String</option>
+                                  <option value="number">Number</option>
+                                  <option value="date">Date (YYYY-MM-DD)</option>
+                                  <option value="boolean">Boolean</option>
+                                </select>
+                              </td>
+                              <td className="px-3.5 py-2">
+                                <input 
+                                  type="checkbox"
+                                  checked={col.required}
+                                  onChange={(e) => handleUpdateColumn(file.id, col.id, { required: e.target.checked })}
+                                  className="rounded border-zinc-350 text-zinc-900 focus:ring-zinc-900 h-4 w-4 cursor-pointer ml-2"
+                                />
+                              </td>
+                              <td className="px-3.5 py-2 text-right">
+                                <button 
+                                  type="button"
+                                  onClick={() => handleRemoveColumn(file.id, col.id)}
+                                  className="text-zinc-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-zinc-100 transition-colors"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
 
-                  {file.custom_rules.length === 0 ? (
-                    <p className="text-xs text-zinc-400 italic bg-zinc-50 border border-dashed border-zinc-100 rounded-xl p-3 text-center">
-                      No custom integrity assertions defined for this file.
-                    </p>
-                  ) : (
-                    <div className="grid gap-2">
-                      {file.custom_rules.map((ruleRow, ruleIdx) => (
-                        <div key={ruleIdx} className="flex items-center gap-2 bg-zinc-50 p-1.5 border border-zinc-100 rounded-lg">
-                          <input
-                            type="text"
-                            placeholder="Column"
-                            value={ruleRow.column}
-                            onChange={(e) => handleCustomRuleChange(fileIdx, ruleIdx, 'column', e.target.value)}
-                            className="flex-1 bg-white border border-zinc-200 rounded p-1 text-xs text-zinc-900 outline-none focus:border-zinc-900"
-                          />
-                          <select
-                            value={ruleRow.operator}
-                            onChange={(e) => handleCustomRuleChange(fileIdx, ruleIdx, 'operator', e.target.value)}
-                            className="w-24 bg-white border border-zinc-200 rounded p-1 text-xs text-zinc-900 outline-none focus:border-zinc-900"
-                          >
-                            <option value="=">=</option>
-                            <option value="!=">!=</option>
-                            <option value=">">&gt;</option>
-                            <option value="&lt;">&lt;</option>
-                            <option value=">=">&gt;=</option>
-                            <option value="&lt;=">&lt;=</option>
-                            <option value="regex">regex</option>
-                          </select>
-                          <input
-                            type="text"
-                            placeholder="Value"
-                            value={ruleRow.value}
-                            onChange={(e) => handleCustomRuleChange(fileIdx, ruleIdx, 'value', e.target.value)}
-                            className="flex-1 bg-white border border-zinc-200 rounded p-1 text-xs text-zinc-900 outline-none focus:border-zinc-900"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => removeCustomRule(fileIdx, ruleIdx)}
-                            className="text-zinc-400 hover:text-red-500 p-1 cursor-pointer"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                      ))}
+                  {/* Condições de Validação Linha-a-Linha */}
+                  <div className="pt-4 border-t border-zinc-100 space-y-3">
+                    <div className="flex justify-between items-center">
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-400">
+                        Row Content Rules & Valuations
+                      </h4>
+                      <button 
+                        type="button"
+                        onClick={() => handleAddRule(file.id)}
+                        className="text-xs font-semibold text-zinc-900 hover:text-zinc-600 flex items-center gap-1 transition-colors"
+                      >
+                        <Plus className="h-3.5 w-3.5" /> Add Rule
+                      </button>
                     </div>
-                  )}
-                </div>
 
-              </div>
-            ))}
-          </div>
-        )}
+                    {file.customRules.length === 0 ? (
+                      <div className="bg-zinc-50/50 rounded-xl p-4 border border-dashed border-zinc-200 text-center text-xs text-zinc-400">
+                        No advanced validations created. The file data will only be verified against column schema types.
+                      </div>
+                    ) : (
+                      <div className="space-y-3.5">
+                        {file.customRules.map((rule) => (
+                          <div key={rule.id} className="flex flex-col lg:flex-row items-stretch gap-2.5 bg-zinc-50/50 border border-zinc-200 rounded-xl p-3.5">
+                            
+                            <div className="flex-1 min-w-[120px]">
+                              <label className="block text-[10px] text-zinc-400 font-bold uppercase tracking-wider mb-1">If Column:</label>
+                              <select
+                                value={rule.field}
+                                onChange={(e) => handleUpdateRule(file.id, rule.id, { field: e.target.value })}
+                                className="text-xs bg-white border border-zinc-200 rounded-lg px-2 py-2 w-full outline-none focus:ring-1 focus:ring-zinc-300"
+                              >
+                                {file.columns.map(c => (
+                                  <option key={c.id} value={c.name}>{c.name}</option>
+                                ))}
+                              </select>
+                            </div>
+
+                            <div className="w-full lg:w-48">
+                              <label className="block text-[10px] text-zinc-400 font-bold uppercase tracking-wider mb-1">Is invalid when:</label>
+                              <select
+                                value={rule.operator}
+                                onChange={(e) => handleUpdateRule(file.id, rule.id, { operator: e.target.value })}
+                                className="text-xs bg-white border border-zinc-200 rounded-lg px-2 py-2 w-full outline-none focus:ring-1 focus:ring-zinc-300"
+                              >
+                                <option value="greater_than">Is less than (&lt;)</option>
+                                <option value="less_than">Is greater than (&gt;)</option>
+                                <option value="regex_not_match">Doesn't match Regex pattern</option>
+                                <option value="is_null">Is empty or null</option>
+                                <option value="not_in_list">Is not in predefined values</option>
+                              </select>
+                            </div>
+
+                            <div className="w-full lg:w-36">
+                              <label className="block text-[10px] text-zinc-400 font-bold uppercase tracking-wider mb-1">Threshold:</label>
+                              <input 
+                                type="text"
+                                value={rule.value}
+                                onChange={(e) => handleUpdateRule(file.id, rule.id, { value: e.target.value })}
+                                className="text-xs bg-white border border-zinc-200 rounded-lg px-2.5 py-2 w-full outline-none focus:ring-1 focus:ring-zinc-300"
+                                placeholder="Value"
+                              />
+                            </div>
+
+                            <div className="flex-1">
+                              <label className="block text-[10px] text-zinc-400 font-bold uppercase tracking-wider mb-1">Validation Error Message:</label>
+                              <input 
+                                type="text"
+                                value={rule.message}
+                                onChange={(e) => handleUpdateRule(file.id, rule.id, { message: e.target.value })}
+                                className="text-xs bg-white border border-zinc-200 rounded-lg px-2.5 py-2 w-full outline-none focus:ring-1 focus:ring-zinc-300 text-rose-700 font-medium"
+                                placeholder="Error description shown to user"
+                              />
+                            </div>
+
+                            <div className="flex items-end pb-1.5">
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveRule(file.id, rule.id)}
+                                className="p-2 text-zinc-400 hover:text-rose-600 rounded-lg hover:bg-zinc-200/55 transition-colors"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
+
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
       </div>
 
-      <hr className="border-zinc-100" />
-
-      {/* BYPASS SETTINGS */}
-      <div className="flex items-center gap-3 pt-2">
-        <input
-          id="allow_empty_files"
-          type="checkbox"
-          name="allow_empty_files"
-          checked={form.allow_empty_files}
-          onChange={handleChange}
-          className="h-4 w-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900"
-        />
-        <label htmlFor="allow_empty_files" className="text-sm text-zinc-700 font-medium select-none cursor-pointer">
-          Allow empty batches to bypass validation without raising system exceptions
-        </label>
-      </div>
     </div>
-  )
+  );
 }
