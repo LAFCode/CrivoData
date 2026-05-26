@@ -47,15 +47,26 @@ export default function WorkflowFormPage() {
     allow_empty_files: false,
     max_error_threshold: 0,
     
-    // Lista dinâmica de arquivos com suas respectivas regras internas
+    // Alinhado com a estrutura camelCase esperada pelos seus componentes de validação
     files: [
       {
-        file_pattern: '',
-        required_columns: '',
-        not_null_columns: '',
-        column_types: [],
-        custom_rules: [],
-      },
+        id: crypto.randomUUID(),
+        name: 'Relatório de Vendas Semanal',
+        pattern: 'vendas_*.csv',
+        required: true,
+        maxSize: 15,
+        allowedFormats: ['csv', 'xlsx'],
+        columns: [
+          { id: 'c1', name: 'id_venda', type: 'number', required: true },
+          { id: 'c2', name: 'valor_total', type: 'number', required: true },
+          { id: 'c3', name: 'data_pagamento', type: 'date', required: true },
+          { id: 'c4', name: 'cpf_cliente', type: 'string', required: false }
+        ],
+        customRules: [
+          { id: 'r1', field: 'valor_total', operator: 'greater_than', value: '0', message: 'O valor não pode ser negativo' }
+        ],
+        isExpanded: true
+      }
     ],
   })
 
@@ -65,10 +76,10 @@ export default function WorkflowFormPage() {
     // Aqui disparará a integração com a API contendo toda a árvore de múltiplos arquivos estruturada
   }
 
-  // Cálculos dinâmicos para o sumário lateral
+  // Cálculos dinâmicos para o sumário lateral baseado na tipagem camelCase
   const totalFiles = form.files.length
-  const totalTypesConfigured = form.files.reduce((acc, file) => acc + (file.column_types?.length || 0), 0)
-  const totalLogicsConfigured = form.files.reduce((acc, file) => acc + (file.custom_rules?.length || 0), 0)
+  const totalTypesConfigured = form.files.reduce((acc, file) => acc + (file.columns?.length || 0), 0)
+  const totalLogicsConfigured = form.files.reduce((acc, file) => acc + (file.customRules?.length || 0), 0)
 
   return (
     <div>
@@ -83,43 +94,75 @@ export default function WorkflowFormPage() {
           {/* LEFT CONTENT */}
           <div>
             <Card className="space-y-6">
-              {/* BASIC */}
-              {activeStep === 'basic' && (
+              
+              {/* BASIC - Mantido na DOM, visibilidade via CSS */}
+              <div className={activeStep === 'basic' ? 'block' : 'hidden'}>
                 <WorkflowBasicSection
                   form={form}
                   setForm={setForm}
                 />
-              )}
+              </div>
 
-              {/* SCHEDULING */}
-              {activeStep === 'scheduling' && (
+              {/* SCHEDULING - Mantido na DOM, visibilidade via CSS */}
+              <div className={activeStep === 'scheduling' ? 'block' : 'hidden'}>
                 <WorkflowSchedulingSection
                   form={form}
                   setForm={setForm}
                 />
-              )}
+              </div>
 
-              {/* VALIDATION */}
-              {activeStep === 'validation' && (
+              {/* VALIDATION - Mantido na DOM, visibilidade via CSS */}
+              <div className={activeStep === 'validation' ? 'block' : 'hidden'}>
                 <WorkflowValidationSection
-                  form={form}
-                  setForm={setForm}
+                  files={form.files}
+                  setFiles={(updatedFiles) => 
+                    setForm((prev) => ({ ...prev, files: updatedFiles }))
+                  }
                 />
-              )}
+              </div>
 
               {/* ACTIONS */}
-              <div className="flex items-center justify-end gap-3 border-t border-zinc-100 pt-6">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={() => navigate('/workflows')}
-                >
-                  Cancel
-                </Button>
+              <div className="flex items-center justify-between border-t border-zinc-100 pt-6">
+                <div>
+                  {activeStep !== 'basic' ? (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={() => {
+                        const currentIndex = steps.findIndex(s => s.id === activeStep)
+                        setActiveStep(steps[currentIndex - 1].id)
+                      }}
+                    >
+                      Back
+                    </Button>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={() => navigate('/workflows')}
+                    >
+                      Cancel
+                    </Button>
+                  )}
+                </div>
 
-                <Button type="submit">
-                  Save Workflow
-                </Button>
+                <div className="flex items-center gap-3">
+                  {activeStep !== 'validation' ? (
+                    <Button
+                      type="button"
+                      onClick={() => {
+                        const currentIndex = steps.findIndex(s => s.id === activeStep)
+                        setActiveStep(steps[currentIndex + 1].id)
+                      }}
+                    >
+                      Next Step
+                    </Button>
+                  ) : (
+                    <Button type="submit">
+                      Save Workflow
+                    </Button>
+                  )}
+                </div>
               </div>
             </Card>
           </div>
