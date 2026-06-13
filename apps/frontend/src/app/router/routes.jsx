@@ -1,5 +1,7 @@
 import NavigationShell from '@/shared/components/navigation/NavigationShell'
+import ProtectedRoute from '@/modules/auth/components/ProtectedRoute'
 
+import LoginPage from '@/modules/auth/pages/LoginPage'
 import DashboardPage from '@/modules/dashboard/pages/DashboardPage'
 import SubmissionsPage from '@/modules/submissions/pages/SubmissionsPage'
 import WorkflowsPage from '@/modules/workflows/pages/WorkflowsPage'
@@ -9,13 +11,20 @@ import SettingsPage from '@/modules/settings/pages/SettingsPage'
 
 function withLayout(component) {
   return (
-    <NavigationShell>
-      {component}
-    </NavigationShell>
+    <ProtectedRoute>
+      <NavigationShell>
+        {component}
+      </NavigationShell>
+    </ProtectedRoute>
   )
 }
 
 export const routes = [
+  {
+    path: '/login',
+    element: <LoginPage />,
+  },
+
   {
     path: '/',
     element: withLayout(<DashboardPage />),

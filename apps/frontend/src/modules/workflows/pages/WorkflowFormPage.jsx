@@ -1,75 +1,85 @@
 import { useState } from 'react'
-
 import { useNavigate } from 'react-router-dom'
 
 import PageHeader from '@/shared/components/PageHeader'
-
 import Button from '@/shared/components/ui/Button'
 import Card from '@/shared/components/ui/Card'
 
 import WorkflowBasicSection from '@/modules/workflows/components/forms/WorkflowBasicSection'
 import WorkflowSchedulingSection from '@/modules/workflows/components/forms/WorkflowSchedulingSection'
+import WorkflowValidationSection from '@/modules/workflows/components/forms/WorkflowValidationSection'
 
 const steps = [
   {
     id: 'basic',
     title: 'Basic Information',
-    description:
-      'Workflow identity and grouping',
+    description: 'Workflow identity and grouping',
   },
-
   {
     id: 'scheduling',
     title: 'Scheduling',
-    description:
-      'Execution frequency and cron',
+    description: 'Execution frequency and cron',
   },
-
-  {
-    id: 'files',
-    title: 'Files',
-    description:
-      'Expected files configuration',
-  },
-
   {
     id: 'validation',
     title: 'Validation',
-    description:
-      'Validation rules and behavior',
+    description: 'Validation rules and behavior',
   },
 ]
 
 export default function WorkflowFormPage() {
   const navigate = useNavigate()
-
-  const [activeStep, setActiveStep] =
-    useState('basic')
+  const [activeStep, setActiveStep] = useState('basic')
 
   const [form, setForm] = useState({
     name: '',
     slug: '',
-
     workflow_group_id: '',
     workflow_subgroup_id: '',
-
     description: '',
-
     status: 'draft',
-
     scheduling_type: 'daily',
-
-    cron_expression:
-      '0 8 * * *',
-
+    cron_expression: '0 8 * * *',
     timezone: 'America/Sao_Paulo',
+    
+    // Configurações Gerais do Workflow
+    validation_type: 'strict',
+    allow_empty_files: false,
+    max_error_threshold: 0,
+    
+    // Alinhado com a estrutura camelCase esperada pelos seus componentes de validação
+    files: [
+      {
+        id: crypto.randomUUID(),
+        name: 'Relatório de Vendas Semanal',
+        pattern: 'vendas_*.csv',
+        required: true,
+        maxSize: 15,
+        allowedFormats: ['csv', 'xlsx'],
+        columns: [
+          { id: 'c1', name: 'id_venda', type: 'number', required: true },
+          { id: 'c2', name: 'valor_total', type: 'number', required: true },
+          { id: 'c3', name: 'data_pagamento', type: 'date', required: true },
+          { id: 'c4', name: 'cpf_cliente', type: 'string', required: false }
+        ],
+        customRules: [
+          { id: 'r1', field: 'valor_total', operator: 'greater_than', value: '0', message: 'O valor não pode ser negativo' }
+        ],
+        isExpanded: true
+      }
+    ],
   })
 
   function handleSubmit(e) {
     e.preventDefault()
-
-    console.log(form)
+    console.log('Payload Final do Workflow:', form)
+    // Aqui disparará a integração com a API contendo toda a árvore de múltiplos arquivos estruturada
   }
+
+  // Cálculos dinâmicos para o sumário lateral baseado na tipagem camelCase
+  const totalFiles = form.files.length
+  const totalTypesConfigured = form.files.reduce((acc, file) => acc + (file.columns?.length || 0), 0)
+  const totalLogicsConfigured = form.files.reduce((acc, file) => acc + (file.customRules?.length || 0), 0)
 
   return (
     <div>
@@ -79,100 +89,80 @@ export default function WorkflowFormPage() {
       />
 
       <form onSubmit={handleSubmit}>
-        <div
-          className="
-            grid
-            gap-6
-
-            lg:grid-cols-[1fr_300px]
-          "
-        >
+        <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
+          
           {/* LEFT CONTENT */}
           <div>
             <Card className="space-y-6">
-              {/* BASIC */}
-              {activeStep ===
-                'basic' && (
+              
+              {/* BASIC - Mantido na DOM, visibilidade via CSS */}
+              <div className={activeStep === 'basic' ? 'block' : 'hidden'}>
                 <WorkflowBasicSection
                   form={form}
                   setForm={setForm}
                 />
-              )}
+              </div>
 
-              {/* SCHEDULING */}
-              {activeStep ===
-                'scheduling' && (
+              {/* SCHEDULING - Mantido na DOM, visibilidade via CSS */}
+              <div className={activeStep === 'scheduling' ? 'block' : 'hidden'}>
                 <WorkflowSchedulingSection
                   form={form}
                   setForm={setForm}
                 />
-              )}
+              </div>
 
-              {/* EMPTY STATES */}
-              {activeStep === 'files' && (
-                <div className="py-16 text-center">
-                  <h3
-                    className="
-                      text-lg
-                      font-semibold
-                      text-zinc-900
-                    "
-                  >
-                    Files Configuration
-                  </h3>
-
-                  <p className="mt-2 text-sm text-zinc-500">
-                    This section will be
-                    implemented next.
-                  </p>
-                </div>
-              )}
-
-              {activeStep ===
-                'validation' && (
-                <div className="py-16 text-center">
-                  <h3
-                    className="
-                      text-lg
-                      font-semibold
-                      text-zinc-900
-                    "
-                  >
-                    Validation Rules
-                  </h3>
-
-                  <p className="mt-2 text-sm text-zinc-500">
-                    This section will be
-                    implemented next.
-                  </p>
-                </div>
-              )}
+              {/* VALIDATION - Mantido na DOM, visibilidade via CSS */}
+              <div className={activeStep === 'validation' ? 'block' : 'hidden'}>
+                <WorkflowValidationSection
+                  files={form.files}
+                  setFiles={(updatedFiles) => 
+                    setForm((prev) => ({ ...prev, files: updatedFiles }))
+                  }
+                />
+              </div>
 
               {/* ACTIONS */}
-              <div
-                className="
-                  flex
-                  items-center
-                  justify-end
-                  gap-3
-                  border-t
-                  border-zinc-100
-                  pt-6
-                "
-              >
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={() =>
-                    navigate('/workflows')
-                  }
-                >
-                  Cancel
-                </Button>
+              <div className="flex items-center justify-between border-t border-zinc-100 pt-6">
+                <div>
+                  {activeStep !== 'basic' ? (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={() => {
+                        const currentIndex = steps.findIndex(s => s.id === activeStep)
+                        setActiveStep(steps[currentIndex - 1].id)
+                      }}
+                    >
+                      Back
+                    </Button>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={() => navigate('/workflows')}
+                    >
+                      Cancel
+                    </Button>
+                  )}
+                </div>
 
-                <Button type="submit">
-                  Save Workflow
-                </Button>
+                <div className="flex items-center gap-3">
+                  {activeStep !== 'validation' ? (
+                    <Button
+                      type="button"
+                      onClick={() => {
+                        const currentIndex = steps.findIndex(s => s.id === activeStep)
+                        setActiveStep(steps[currentIndex + 1].id)
+                      }}
+                    >
+                      Next Step
+                    </Button>
+                  ) : (
+                    <Button type="submit">
+                      Save Workflow
+                    </Button>
+                  )}
+                </div>
               </div>
             </Card>
           </div>
@@ -180,17 +170,8 @@ export default function WorkflowFormPage() {
           {/* RIGHT SIDEBAR */}
           <div className="h-fit">
             <Card className="space-y-2">
-              {/* HEADER */}
               <div className="mb-4">
-                <h3
-                  className="
-                    text-sm
-                    font-semibold
-                    uppercase
-                    tracking-wide
-                    text-zinc-500
-                  "
-                >
+                <h3 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">
                   Workflow Setup
                 </h3>
               </div>
@@ -198,18 +179,13 @@ export default function WorkflowFormPage() {
               {/* STEPS */}
               <div className="space-y-2">
                 {steps.map((step, index) => {
-                  const isActive =
-                    activeStep === step.id
+                  const isActive = activeStep === step.id
 
                   return (
                     <button
                       key={step.id}
                       type="button"
-                      onClick={() =>
-                        setActiveStep(
-                          step.id
-                        )
-                      }
+                      onClick={() => setActiveStep(step.id)}
                       className={`
                         group
                         flex
@@ -221,22 +197,10 @@ export default function WorkflowFormPage() {
                         p-4
                         text-left
                         transition-all
-
                         ${
                           isActive
-                            ? `
-                              border-zinc-900
-                              bg-zinc-900
-                              text-white
-                              shadow-lg
-                            `
-                            : `
-                              border-zinc-200
-                              bg-white
-
-                              hover:border-zinc-300
-                              hover:bg-zinc-50
-                            `
+                            ? 'border-zinc-900 bg-zinc-900 text-white shadow-lg'
+                            : 'border-zinc-200 bg-white hover:border-zinc-300 hover:bg-zinc-50'
                         }
                       `}
                     >
@@ -252,17 +216,10 @@ export default function WorkflowFormPage() {
                           rounded-full
                           text-xs
                           font-semibold
-
                           ${
                             isActive
-                              ? `
-                                bg-white/20
-                                text-white
-                              `
-                              : `
-                                bg-zinc-100
-                                text-zinc-600
-                              `
+                              ? 'bg-white/20 text-white'
+                              : 'bg-zinc-100 text-zinc-600'
                           }
                         `}
                       >
@@ -271,37 +228,11 @@ export default function WorkflowFormPage() {
 
                       {/* CONTENT */}
                       <div>
-                        <p
-                          className={`
-                            text-sm
-                            font-medium
-
-                            ${
-                              isActive
-                                ? 'text-white'
-                                : 'text-zinc-900'
-                            }
-                          `}
-                        >
+                        <p className={`text-sm font-medium ${isActive ? 'text-white' : 'text-zinc-900'}`}>
                           {step.title}
                         </p>
-
-                        <p
-                          className={`
-                            mt-1
-                            text-xs
-                            leading-relaxed
-
-                            ${
-                              isActive
-                                ? 'text-zinc-300'
-                                : 'text-zinc-500'
-                            }
-                          `}
-                        >
-                          {
-                            step.description
-                          }
+                        <p className={`mt-1 text-xs leading-relaxed ${isActive ? 'text-zinc-300' : 'text-zinc-500'}`}>
+                          {step.description}
                         </p>
                       </div>
                     </button>
@@ -310,71 +241,52 @@ export default function WorkflowFormPage() {
               </div>
 
               {/* SUMMARY */}
-              <div
-                className="
-                  mt-6
-                  rounded-2xl
-                  border
-                  border-zinc-200
-                  bg-zinc-50
-                  p-4
-                "
-              >
-                <h4
-                  className="
-                    mb-3
-                    text-sm
-                    font-semibold
-                    text-zinc-900
-                  "
-                >
+              <div className="mt-6 rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
+                <h4 className="mb-3 text-sm font-semibold text-zinc-900">
                   Workflow Summary
                 </h4>
 
                 <div className="space-y-3">
                   <div>
-                    <p className="text-xs text-zinc-500">
-                      Status
-                    </p>
-
-                    <p className="text-sm font-medium text-zinc-900">
-                      {form.status}
-                    </p>
+                    <p className="text-xs text-zinc-500">Status</p>
+                    <p className="text-sm font-medium text-zinc-900 capitalize">{form.status}</p>
                   </div>
 
                   <div>
-                    <p className="text-xs text-zinc-500">
-                      Group
-                    </p>
-
-                    <p className="text-sm font-medium text-zinc-900">
-                      {form.workflow_group_id ||
-                        '-'}
-                    </p>
+                    <p className="text-xs text-zinc-500">Group</p>
+                    <p className="text-sm font-medium text-zinc-900">{form.workflow_group_id || '-'}</p>
                   </div>
 
                   <div>
-                    <p className="text-xs text-zinc-500">
-                      Cron
-                    </p>
+                    <p className="text-xs text-zinc-500">Validation Mode</p>
+                    <p className="text-sm font-medium text-zinc-900 capitalize">{form.validation_type}</p>
+                  </div>
 
-                    <p
-                      className="
-                        break-all
-                        font-mono
-                        text-xs
-                        text-zinc-700
-                      "
-                    >
-                      {
-                        form.cron_expression
-                      }
+                  <div>
+                    <p className="text-xs text-zinc-500">Expected Files</p>
+                    <p className="text-sm font-medium text-zinc-900">
+                      {totalFiles} {totalFiles === 1 ? 'file' : 'files'}
                     </p>
+                  </div>
+
+                  {totalFiles > 0 && (
+                    <div>
+                      <p className="text-xs text-zinc-500">Total Pipeline Rules</p>
+                      <p className="text-xs font-medium text-zinc-700">
+                        {totalTypesConfigured} Types / {totalLogicsConfigured} Assertions
+                      </p>
+                    </div>
+                  )}
+
+                  <div>
+                    <p className="text-xs text-zinc-500">Cron</p>
+                    <p className="break-all font-mono text-xs text-zinc-700">{form.cron_expression}</p>
                   </div>
                 </div>
               </div>
             </Card>
           </div>
+
         </div>
       </form>
     </div>
