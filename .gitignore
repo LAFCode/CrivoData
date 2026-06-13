@@ -7,10 +7,33 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Build outputs
+/build/
+/dist/
 dist-ssr
+/.next/
+/out/
+
+# Testing artifacts
+/coverage/
+
+# Environment variables
+.env
+.env.*
 *.local
+
+# Large data files
+*.csv
+*.xlsx
+*.sqlite
+
+# Generated/minified code
+*.min.js
+*.map
 
 # Editor directories and files
 .vscode/*
