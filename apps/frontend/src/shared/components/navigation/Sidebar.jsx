@@ -7,18 +7,15 @@ import SidebarUser from './SidebarUser'
 import LanguageSelector from './LanguageSelector'
 
 import { sidebarItems } from './sidebar-items'
+import { useAuthStore } from '@/modules/auth/stores/authStore'
 
 export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false)
 
   const { t, i18n } = useTranslation()
+  const user = useAuthStore((s) => s.user)
 
   const items = sidebarItems(t)
-
-  const user = {
-    name: 'Leonardo',
-    role: 'Data Engineer',
-  }
 
   return (
     <aside
