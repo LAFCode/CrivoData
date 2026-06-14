@@ -1,28 +1,37 @@
 # Active Context
 
 ## Current Work Focus
-Frontend Workflow Form fully enhanced with validation, toast notifications, and improved UX.
+Full data persistence for Workflow Form — all form fields now sent to API and saved to database, including file definitions (validation archives).
 
 ## Recent Changes
-- **Schedule Preset** changed from `<select>` dropdown to compact selection pills (Hourly, Daily, Weekly, Monthly) with `flex-wrap gap-1.5` inline layout
-- **"Enable Workflow" checkbox** removed from Scheduling section
-- **Execution Type dropdown** now has a placeholder option and shows validation error styling
-- **Mock data removed** from Validation tab — `INITIAL_STATE = []`, users start with empty file list
-- **Empty state** added to Validation tab: dashed border box with icon, title, and explanation text
-- **useWorkflowFiles hook** updated to support controlled mode — accepts `externalFiles` and `onFilesChange` params so parent's `form.files` is the source of truth
-- **WorkflowValidationSection** now passes through `files`/`setFiles` props to the hook
-- **Form validation** added on step advance (Next Step) and final submit:
-  - Basic: workflow name required
-  - Scheduling: execution type required
-  - Validation: at least 1 expected file required
-- **Toast notifications** shown on validation errors, save success, and save failure (bottom-right, dismissible)
-- **WorkflowBasicSection** shows inline error (red border + message) for missing name
-- **WorkflowSchedulingSection** shows inline error for missing execution type
-- **Initial form state** changed: `files` starts empty, no mock file data
+### Form Validation & UX Fixes
+- **Inline errors on all tabs on "Save"** — `validateStep` was called 3 times sequentially, each overwriting `validationErrors` state. Fixed by introducing `collectAllErrors()` which builds a single merged errors object and sets state once.
+- **"Next Step" no longer auto-saves** — removed the API call (`workflowService.create/update`) that ran when leaving the Scheduling step. `handleNextStep` now only validates and advances.
+- **Unused `isSaving` state removed** — cleaned up component.
+
+### Group Validation Added
+- **Group field (workflow_group_id)** — validation added to both `collectAllErrors()` and `validateStep('basic')`. Inline error display (red border + message) added to the Group `<select>` in `WorkflowBasicSection`.
+
+### Full Data Persistence
+- **14/14 form fields now sent to API** — previously only 6 were mapped, rest were dropped.
+- **`WorkflowFileDefinition` model created** — new table `workflow_file_definitions` stores the full file definition data from the Validation tab (name, pattern, formats, columns, custom rules).
+- **WorkflowVersion auto-created** — `WorkflowService.create()` now creates an initial version (v1) and attaches file definitions to it.
+- **8 new tables added** to match the DB diagram:
+  - `workflow_file_definitions` — expected file definitions with schema columns and custom rules
+  - `workflow_validation_rules` — per-step validation rules
+  - `workflow_approval_configs` — approval configuration per version
+  - `workflow_executions` — execution runs
+  - `workflow_execution_files` — uploaded files per execution
+  - `workflow_execution_steps` — step results per execution
+  - `workflow_execution_logs` — execution log entries
+  - `workflow_approvals` — approval records
+
+### Migration Idempotency
+- Migrations 0003 and 0004 now check if columns/tables exist before creating them, preventing "already exists" errors.
 
 ## Current State
-- **Frontend**: ~28% complete (auth + workflows connected to backend, form enhancements done)
-- **Backend**: ~40% complete (core, auth, validation, ingestion, Celery, Dockerized, workflow CRUD)
+- **Frontend**: ~30% complete (full workflow form persistence working)
+- **Backend**: ~45% complete (all workflow tables created, CRUD with file definitions)
 - **Infrastructure**: Docker Compose ready
 
 ## Docker Compose Services
@@ -47,7 +56,7 @@ Frontend Workflow Form fully enhanced with validation, toast notifications, and 
 | `GET` | `/api/v1/auth/me` | Current user |
 | `GET` | `/api/v1/workflows/` | List workflows |
 | `GET` | `/api/v1/workflows/{id}` | Get workflow |
-| `POST` | `/api/v1/workflows/` | Create workflow |
+| `POST` | `/api/v1/workflows/` | Create workflow (with file_definitions) |
 | `PUT` | `/api/v1/workflows/{id}` | Update workflow |
 | `DELETE` | `/api/v1/workflows/{id}` | Delete workflow |
 
@@ -62,11 +71,13 @@ Frontend Workflow Form fully enhanced with validation, toast notifications, and 
 ## Active Decisions and Considerations
 - Migration runs automatically on container startup via `alembic upgrade head` in `entrypoint.sh`
 - Alembic uses sync `psycopg2` connection for migrations while the app uses async `asyncpg`
+- Migrations 0003 and 0004 are idempotent — check column/table existence before creating
 - bcrypt pinned to 4.1.3 for passlib compatibility (5.x breaks passlib)
 - email-validator installed for Pydantic `EmailStr` support
 - Frontend auth uses `crivodata_token` key in localStorage
 - Backend login expects `email` + `password` (not username)
-- Workflow form submits to `POST /api/v1/workflows/` with mapped fields
+- Workflow form submits to `POST /api/v1/workflows/` with all fields + `file_definitions[]`
+- `WorkflowService.create()` auto-creates version v1 and links file definitions
 - Validation errors shown inline (border + text) and via toast notification
 - Toast notifications use `fixed bottom-6 right-6 z-50` positioning, dismissible
 - useWorkflowFiles supports controlled mode when parent provides files/setFiles
@@ -74,6 +85,5 @@ Frontend Workflow Form fully enhanced with validation, toast notifications, and 
 ### Test Results
 - 15/15 unit tests pass locally
 - Docker health check confirmed: `200 OK`
-- Alembic migration logs confirm: `Running upgrade 0001 -> 0002`
 - Auth register + login confirmed working
-- Workflow CRUD confirmed working (create, list)
+- Workflow CRUD confirmed working (create with file definitions, list)

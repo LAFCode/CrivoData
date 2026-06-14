@@ -5,15 +5,15 @@
 - **FastAPI project structure** scaffolded under `apps/backend/`
 - **Core modules**: config (Pydantic Settings), async database (SQLAlchemy + asyncpg), JWT security
 - **Auth system**: JWT-based with register/login/refresh endpoints, bearer token dependency
-- **5 SQLAlchemy models** (8 tables): User, Workflow (with WorkflowVersion, WorkflowStep), Submission (with SubmissionResult), ValidationRule, Notification
+- **13 SQLAlchemy models** (17 tables): User, Workflow (with WorkflowVersion, WorkflowFileDefinition, WorkflowStep), WorkflowValidationRule, WorkflowApprovalConfig, WorkflowExecution, WorkflowExecutionFile, WorkflowExecutionStep, WorkflowExecutionLog, WorkflowApproval, Submission (with SubmissionResult), ValidationRule, Notification
 - **Pydantic schemas** for all models (User, Workflow, Submission, ValidationRule)
 - **Validation engine**: Plugin-based architecture with `BaseValidator` abstract class, `ValidationEngine` orchestrator, 3 built-in validators (ColumnExists, DataType, Range)
 - **File ingestion**: Parsers for XLSX, CSV, PDF using pandas + PyPDF2 (factory pattern)
 - **Celery worker**: Async `process_submission` task configured with Redis broker
 - **Service layer**: `AuthService` encapsulates login/register/refresh business logic
-- **Workflow service**: `WorkflowService` with `list_by_owner`, `get`, `create`, `update`, `delete`
+- **Workflow service**: `WorkflowService` with `list_by_owner`, `get`, `create`, `update`, `delete` — auto-creates version v1 and file definitions
 - **Workflow CRUD API**: GET/POST/PUT/DELETE `/api/v1/workflows/` with JWT auth
-- **Alembic**: Migration config with initial migration (0001) + workflow fields migration (0002)
+- **Alembic**: Migration config with 4 migrations (0001 initial, 0002 workflow fields, 0003 extra columns, 0004 new tables)
 - **15 unit tests** passing (security/JWT + validation engine/rules)
 - **Docker**: Full Docker Compose with 5 services
 - **Automatic migrations**: `entrypoint.sh` runs `alembic upgrade head` on startup
@@ -35,6 +35,7 @@
 - **Form validation**: Inline errors (red border + text) + toast notifications on all required fields
 - **Toast notifications**: Bottom-right dismissible toasts for validation errors, save success/failure
 - **useWorkflowFiles hook**: Supports controlled mode (parent-provided files/setFiles)
+- **Full form persistence**: All 14 form fields + file_definitions[] sent to API on save
 
 ## What's Left to Build
 
@@ -66,8 +67,8 @@
 
 ## Current Status
 **Phase**: Early Development - Foundation
-**Frontend**: ~28% complete (auth + workflows connected to backend, form enhancements done)
-**Backend**: ~40% complete (core, auth, validation, ingestion, Celery, Dockerized, workflow CRUD)
+**Frontend**: ~30% complete (auth + workflows connected to backend, form persistence done)
+**Backend**: ~45% complete (core, auth, validation, ingestion, Celery, Dockerized, workflow CRUD, file definitions)
 **Infrastructure**: Docker Compose ready
 
 ## Known Issues
@@ -87,3 +88,7 @@
 - Schedule Preset uses pill-shaped buttons for compact inline UX
 - useWorkflowFiles supports controlled/uncontrolled dual mode
 - Validation errors shown both inline and via toast notification
+- Migrations 0003/0004 are idempotent — safe to re-run
+- `WorkflowService.create()` auto-creates version v1 + file definitions
+- All 14 form fields + file_definitions[] sent in a single POST payload
+- 8 new tables created to match DB diagram (workflow_file_definitions, workflow_validation_rules, workflow_approval_configs, workflow_executions, workflow_execution_files, workflow_execution_steps, workflow_execution_logs, workflow_approvals)
