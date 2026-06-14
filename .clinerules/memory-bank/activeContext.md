@@ -1,23 +1,27 @@
 # Active Context
 
 ## Current Work Focus
-Frontend Workflows module fully connected to backend API. Auth flow uses real backend API.
+Frontend Workflow Form fully enhanced with validation, toast notifications, and improved UX.
 
 ## Recent Changes
-- **Workflow model** updated with `status`, `group_name`, `workflow_type`, `recurrence_type`, `expected_files_count` fields
-- **Alembic migration 0002** created and auto-applied on container startup
-- **Workflow CRUD API** endpoints created: GET/POST/PUT/DELETE `/api/v1/workflows/`
-- **Workflow service** created with `list_by_owner`, `get`, `create`, `update`, `delete`
-- **Frontend workflowService.js** created with Axios client, JWT token injection, 401 redirect
-- **WorkflowsPage.jsx** updated to fetch from real API instead of mock data
-- **WorkflowFormPage.jsx** updated to call `workflowService.create()` on submit
-- **Auth service** updated to use real backend API (`POST /api/v1/auth/login` with `{ email, password }`)
-- **LoginPage.jsx** updated to use email field instead of username
-- **Token key** aligned: frontend uses `crivodata_token` in localStorage
-- **bcrypt** pinned to 4.1.3 in requirements.txt for passlib compatibility
+- **Schedule Preset** changed from `<select>` dropdown to compact selection pills (Hourly, Daily, Weekly, Monthly) with `flex-wrap gap-1.5` inline layout
+- **"Enable Workflow" checkbox** removed from Scheduling section
+- **Execution Type dropdown** now has a placeholder option and shows validation error styling
+- **Mock data removed** from Validation tab — `INITIAL_STATE = []`, users start with empty file list
+- **Empty state** added to Validation tab: dashed border box with icon, title, and explanation text
+- **useWorkflowFiles hook** updated to support controlled mode — accepts `externalFiles` and `onFilesChange` params so parent's `form.files` is the source of truth
+- **WorkflowValidationSection** now passes through `files`/`setFiles` props to the hook
+- **Form validation** added on step advance (Next Step) and final submit:
+  - Basic: workflow name required
+  - Scheduling: execution type required
+  - Validation: at least 1 expected file required
+- **Toast notifications** shown on validation errors, save success, and save failure (bottom-right, dismissible)
+- **WorkflowBasicSection** shows inline error (red border + message) for missing name
+- **WorkflowSchedulingSection** shows inline error for missing execution type
+- **Initial form state** changed: `files` starts empty, no mock file data
 
 ## Current State
-- **Frontend**: ~25% complete (auth + workflows connected to backend)
+- **Frontend**: ~28% complete (auth + workflows connected to backend, form enhancements done)
 - **Backend**: ~40% complete (core, auth, validation, ingestion, Celery, Dockerized, workflow CRUD)
 - **Infrastructure**: Docker Compose ready
 
@@ -63,6 +67,9 @@ Frontend Workflows module fully connected to backend API. Auth flow uses real ba
 - Frontend auth uses `crivodata_token` key in localStorage
 - Backend login expects `email` + `password` (not username)
 - Workflow form submits to `POST /api/v1/workflows/` with mapped fields
+- Validation errors shown inline (border + text) and via toast notification
+- Toast notifications use `fixed bottom-6 right-6 z-50` positioning, dismissible
+- useWorkflowFiles supports controlled mode when parent provides files/setFiles
 
 ### Test Results
 - 15/15 unit tests pass locally

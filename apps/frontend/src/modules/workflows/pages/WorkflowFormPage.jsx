@@ -34,7 +34,6 @@ export default function WorkflowFormPage() {
   const navigate = useNavigate()
   const [activeStep, setActiveStep] = useState('basic')
   const [savedWorkflowId, setSavedWorkflowId] = useState(null)
-  const [isSaving, setIsSaving] = useState(false)
 
   const [form, setForm] = useState({
     name: '',
@@ -66,6 +65,9 @@ export default function WorkflowFormPage() {
       if (!form.name.trim()) {
         errors.name = 'Workflow name is required'
       }
+      if (!form.workflow_group_id) {
+        errors.workflow_group_id = 'Select a group'
+      }
     }
 
     if (stepId === 'scheduling') {
@@ -84,24 +86,45 @@ export default function WorkflowFormPage() {
     return Object.keys(errors).length === 0
   }
 
+  function collectAllErrors() {
+    const allErrors = {}
+
+    if (!form.name.trim()) {
+      allErrors.name = 'Workflow name is required'
+    }
+
+    if (!form.workflow_group_id) {
+      allErrors.workflow_group_id = 'Select a group'
+    }
+
+    if (!form.execution_type) {
+      allErrors.execution_type = 'Select an execution type'
+    }
+
+    if (form.files.length === 0) {
+      allErrors.files = 'Add at least one expected file'
+    }
+
+    return allErrors
+  }
+
   async function handleSubmit(e) {
     e.preventDefault()
 
-    // Validate all steps before submitting
-    const isBasicValid = validateStep('basic')
-    const isSchedulingValid = validateStep('scheduling')
-    const isValidationValid = validateStep('validation')
+    const allErrors = collectAllErrors()
+    setValidationErrors(allErrors)
 
-    if (!isBasicValid || !isSchedulingValid || !isValidationValid) {
+    if (Object.keys(allErrors).length > 0) {
       // Scroll to the first step with errors
-      if (!isBasicValid) setActiveStep('basic')
-      else if (!isSchedulingValid) setActiveStep('scheduling')
-      else if (!isValidationValid) setActiveStep('validation')
+      if (allErrors.name || allErrors.workflow_group_id) setActiveStep('basic')
+      else if (allErrors.execution_type) setActiveStep('scheduling')
+      else if (allErrors.files) setActiveStep('validation')
 
       const missing = []
-      if (!isBasicValid) missing.push('Workflow name')
-      if (!isSchedulingValid) missing.push('Execution type')
-      if (!isValidationValid) missing.push('At least one expected file')
+      if (allErrors.name) missing.push('Workflow name')
+      if (allErrors.workflow_group_id) missing.push('Group')
+      if (allErrors.execution_type) missing.push('Execution type')
+      if (allErrors.files) missing.push('At least one expected file')
 
       setNotification({
         type: 'error',
@@ -147,7 +170,7 @@ export default function WorkflowFormPage() {
     }
   }
 
-  const handleNextStep = useCallback(async () => {
+  const handleNextStep = useCallback(() => {
     const currentIndex = steps.findIndex(s => s.id === activeStep)
 
     // Validate current step before advancing
@@ -157,34 +180,6 @@ export default function WorkflowFormPage() {
         message: 'Fix the highlighted fields before continuing.',
       })
       return
-    }
-
-    // Auto-save when leaving the scheduling step (moving to validation)
-    if (activeStep === 'scheduling') {
-      setIsSaving(true)
-      try {
-        const payload = {
-          name: form.name,
-          description: form.description,
-          status: form.status,
-          workflow_type: form.validation_type,
-          group_name: form.workflow_group_id,
-          recurrence_type: form.scheduling_type,
-          expected_files_count: form.files.length,
-        }
-
-        if (savedWorkflowId) {
-          await workflowService.update(savedWorkflowId, payload)
-        } else {
-          const res = await workflowService.create(payload)
-          setSavedWorkflowId(res.data?.id)
-        }
-      } catch (err) {
-        console.error('Failed to auto-save workflow:', err)
-        return // Do not advance step on save failure
-      } finally {
-        setIsSaving(false)
-      }
     }
 
     setActiveStep(steps[currentIndex + 1].id)
@@ -293,9 +288,8 @@ export default function WorkflowFormPage() {
                     <Button
                       type="button"
                       onClick={handleNextStep}
-                      disabled={isSaving}
                     >
-                      {isSaving ? 'Saving...' : 'Next Step'}
+                      Next Step
                     </Button>
                   ) : (
                     <Button type="submit">

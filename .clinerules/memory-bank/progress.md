@@ -29,7 +29,12 @@
 - **LoginPage**: Updated to use email field instead of username
 - **Workflow service**: Axios client with JWT token injection, 401 redirect
 - **WorkflowsPage**: Fetches from real API, dynamic group/status filters, loading/error states
-- **WorkflowFormPage**: Calls `workflowService.create()` on submit, navigates to list on success
+- **WorkflowFormPage**: Full form with 3-step wizard (Basic, Scheduling, Validation), validation, toast notifications
+- **Schedule Preset**: Compact selection pills instead of dropdown (Hourly, Daily, Weekly, Monthly)
+- **Validation tab**: Empty state with dashed border box, no mock data, controlled file management via parent state
+- **Form validation**: Inline errors (red border + text) + toast notifications on all required fields
+- **Toast notifications**: Bottom-right dismissible toasts for validation errors, save success/failure
+- **useWorkflowFiles hook**: Supports controlled mode (parent-provided files/setFiles)
 
 ## What's Left to Build
 
@@ -61,7 +66,7 @@
 
 ## Current Status
 **Phase**: Early Development - Foundation
-**Frontend**: ~25% complete (auth + workflows connected to backend)
+**Frontend**: ~28% complete (auth + workflows connected to backend, form enhancements done)
 **Backend**: ~40% complete (core, auth, validation, ingestion, Celery, Dockerized, workflow CRUD)
 **Infrastructure**: Docker Compose ready
 
@@ -79,3 +84,6 @@
 - Frontend auth uses `crivodata_token` key in localStorage
 - Backend login expects `email` + `password` (not username)
 - Workflow form submits to `POST /api/v1/workflows/` with mapped fields
+- Schedule Preset uses pill-shaped buttons for compact inline UX
+- useWorkflowFiles supports controlled/uncontrolled dual mode
+- Validation errors shown both inline and via toast notification

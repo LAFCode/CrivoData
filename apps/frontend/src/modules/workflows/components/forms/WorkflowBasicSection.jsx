@@ -308,12 +308,11 @@ export default function WorkflowBasicSection({
                     '',
                 }))
               }
-              className="
+              className={`
                 h-11
                 w-full
                 rounded-2xl
                 border
-                border-zinc-200
                 bg-white
                 px-3
                 text-sm
@@ -321,7 +320,8 @@ export default function WorkflowBasicSection({
                 transition-colors
 
                 focus:border-zinc-400
-              "
+                ${errors.workflow_group_id ? 'border-rose-300' : 'border-zinc-200'}
+              `}
             >
               <option value="">
                 {t(
@@ -348,11 +348,15 @@ export default function WorkflowBasicSection({
               </option>
             </select>
 
-            <p className="text-xs text-zinc-500">
-              {t(
-                'workflows.workflowGroupHelp'
-              )}
-            </p>
+            {errors.workflow_group_id ? (
+              <p className="text-xs text-rose-600">{errors.workflow_group_id}</p>
+            ) : (
+              <p className="text-xs text-zinc-500">
+                {t(
+                  'workflows.workflowGroupHelp'
+                )}
+              </p>
+            )}
           </div>
 
           {/* SUBGROUP */}
