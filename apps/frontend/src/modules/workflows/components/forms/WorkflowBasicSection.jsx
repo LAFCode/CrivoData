@@ -5,6 +5,7 @@ import Input from '@/shared/components/ui/Input'
 export default function WorkflowBasicSection({
   form,
   setForm,
+  errors = {},
 }) {
   const { t } = useTranslation()
 
@@ -161,13 +162,18 @@ export default function WorkflowBasicSection({
                   e.target.value
                 )
               }
+              className={errors.name ? 'border-rose-300 focus:border-rose-400' : ''}
             />
 
-            <p className="text-xs text-zinc-500">
-              {t(
-                'workflows.workflowNameHelp'
-              )}
-            </p>
+            {errors.name ? (
+              <p className="text-xs text-rose-600">{errors.name}</p>
+            ) : (
+              <p className="text-xs text-zinc-500">
+                {t(
+                  'workflows.workflowNameHelp'
+                )}
+              </p>
+            )}
           </div>
 
           {/* SLUG */}

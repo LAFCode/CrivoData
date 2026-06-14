@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { AlertTriangle } from 'lucide-react'
 
 import PageHeader from '@/shared/components/PageHeader'
 import Button from '@/shared/components/ui/Button'
@@ -8,6 +9,8 @@ import Card from '@/shared/components/ui/Card'
 import WorkflowBasicSection from '@/modules/workflows/components/forms/WorkflowBasicSection'
 import WorkflowSchedulingSection from '@/modules/workflows/components/forms/WorkflowSchedulingSection'
 import WorkflowValidationSection from '@/modules/workflows/components/forms/WorkflowValidationSection'
+
+import { workflowService } from '@/modules/workflows/services/workflowService'
 
 const steps = [
   {
@@ -30,6 +33,8 @@ const steps = [
 export default function WorkflowFormPage() {
   const navigate = useNavigate()
   const [activeStep, setActiveStep] = useState('basic')
+  const [savedWorkflowId, setSavedWorkflowId] = useState(null)
+  const [isSaving, setIsSaving] = useState(false)
 
   const [form, setForm] = useState({
     name: '',
@@ -47,34 +52,143 @@ export default function WorkflowFormPage() {
     allow_empty_files: false,
     max_error_threshold: 0,
     
-    // Alinhado com a estrutura camelCase esperada pelos seus componentes de validação
-    files: [
-      {
-        id: crypto.randomUUID(),
-        name: 'Relatório de Vendas Semanal',
-        pattern: 'vendas_*.csv',
-        required: true,
-        maxSize: 15,
-        allowedFormats: ['csv', 'xlsx'],
-        columns: [
-          { id: 'c1', name: 'id_venda', type: 'number', required: true },
-          { id: 'c2', name: 'valor_total', type: 'number', required: true },
-          { id: 'c3', name: 'data_pagamento', type: 'date', required: true },
-          { id: 'c4', name: 'cpf_cliente', type: 'string', required: false }
-        ],
-        customRules: [
-          { id: 'r1', field: 'valor_total', operator: 'greater_than', value: '0', message: 'O valor não pode ser negativo' }
-        ],
-        isExpanded: true
-      }
-    ],
+    // Lista de arquivos esperados
+    files: [],
   })
 
-  function handleSubmit(e) {
-    e.preventDefault()
-    console.log('Payload Final do Workflow:', form)
-    // Aqui disparará a integração com a API contendo toda a árvore de múltiplos arquivos estruturada
+  const [validationErrors, setValidationErrors] = useState({})
+  const [notification, setNotification] = useState(null)
+
+  function validateStep(stepId) {
+    const errors = {}
+
+    if (stepId === 'basic' || stepId === '__all__') {
+      if (!form.name.trim()) {
+        errors.name = 'Workflow name is required'
+      }
+    }
+
+    if (stepId === 'scheduling') {
+      if (!form.execution_type) {
+        errors.execution_type = 'Select an execution type'
+      }
+    }
+
+    if (stepId === 'validation' || stepId === '__all__') {
+      if (form.files.length === 0) {
+        errors.files = 'Add at least one expected file'
+      }
+    }
+
+    setValidationErrors(errors)
+    return Object.keys(errors).length === 0
   }
+
+  async function handleSubmit(e) {
+    e.preventDefault()
+
+    // Validate all steps before submitting
+    const isBasicValid = validateStep('basic')
+    const isSchedulingValid = validateStep('scheduling')
+    const isValidationValid = validateStep('validation')
+
+    if (!isBasicValid || !isSchedulingValid || !isValidationValid) {
+      // Scroll to the first step with errors
+      if (!isBasicValid) setActiveStep('basic')
+      else if (!isSchedulingValid) setActiveStep('scheduling')
+      else if (!isValidationValid) setActiveStep('validation')
+
+      const missing = []
+      if (!isBasicValid) missing.push('Workflow name')
+      if (!isSchedulingValid) missing.push('Execution type')
+      if (!isValidationValid) missing.push('At least one expected file')
+
+      setNotification({
+        type: 'error',
+        message: `Missing: ${missing.join(', ')}.`,
+      })
+      return
+    }
+
+    try {
+      if (savedWorkflowId) {
+        await workflowService.update(savedWorkflowId, {
+          name: form.name,
+          description: form.description,
+          status: form.status,
+          workflow_type: form.validation_type,
+          group_name: form.workflow_group_id,
+          recurrence_type: form.scheduling_type,
+          expected_files_count: form.files.length,
+        })
+      } else {
+        await workflowService.create({
+          name: form.name,
+          description: form.description,
+          status: form.status,
+          workflow_type: form.validation_type,
+          group_name: form.workflow_group_id,
+          recurrence_type: form.scheduling_type,
+          expected_files_count: form.files.length,
+        })
+      }
+
+      setNotification({
+        type: 'success',
+        message: 'Workflow saved successfully!',
+      })
+      setTimeout(() => navigate('/workflows'), 800)
+    } catch (err) {
+      console.error('Failed to save workflow:', err)
+      setNotification({
+        type: 'error',
+        message: 'Failed to save workflow. Try again.',
+      })
+    }
+  }
+
+  const handleNextStep = useCallback(async () => {
+    const currentIndex = steps.findIndex(s => s.id === activeStep)
+
+    // Validate current step before advancing
+    if (!validateStep(activeStep)) {
+      setNotification({
+        type: 'error',
+        message: 'Fix the highlighted fields before continuing.',
+      })
+      return
+    }
+
+    // Auto-save when leaving the scheduling step (moving to validation)
+    if (activeStep === 'scheduling') {
+      setIsSaving(true)
+      try {
+        const payload = {
+          name: form.name,
+          description: form.description,
+          status: form.status,
+          workflow_type: form.validation_type,
+          group_name: form.workflow_group_id,
+          recurrence_type: form.scheduling_type,
+          expected_files_count: form.files.length,
+        }
+
+        if (savedWorkflowId) {
+          await workflowService.update(savedWorkflowId, payload)
+        } else {
+          const res = await workflowService.create(payload)
+          setSavedWorkflowId(res.data?.id)
+        }
+      } catch (err) {
+        console.error('Failed to auto-save workflow:', err)
+        return // Do not advance step on save failure
+      } finally {
+        setIsSaving(false)
+      }
+    }
+
+    setActiveStep(steps[currentIndex + 1].id)
+  }, [activeStep, form, savedWorkflowId])
 
   // Cálculos dinâmicos para o sumário lateral baseado na tipagem camelCase
   const totalFiles = form.files.length
@@ -88,6 +202,31 @@ export default function WorkflowFormPage() {
         description="Create and configure a workflow"
       />
 
+      {/* NOTIFICATION TOAST */}
+      {notification && (
+        <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-xl border px-4 py-3 text-xs font-medium shadow-md transition-all duration-300 ${
+          notification.type === 'error'
+            ? 'border-rose-100 bg-rose-50 text-rose-800'
+            : 'border-zinc-900 bg-zinc-900 text-white'
+        }`}>
+          {notification.type === 'error' ? (
+            <AlertTriangle className="h-4 w-4 shrink-0 text-rose-600" />
+          ) : (
+            <svg className="h-4 w-4 shrink-0 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+          )}
+          <span>{notification.message}</span>
+          <button
+            type="button"
+            onClick={() => setNotification(null)}
+            className="ml-auto text-zinc-400 hover:text-zinc-600"
+          >
+            &times;
+          </button>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit}>
         <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
           
@@ -100,6 +239,7 @@ export default function WorkflowFormPage() {
                 <WorkflowBasicSection
                   form={form}
                   setForm={setForm}
+                  errors={validationErrors}
                 />
               </div>
 
@@ -108,6 +248,7 @@ export default function WorkflowFormPage() {
                 <WorkflowSchedulingSection
                   form={form}
                   setForm={setForm}
+                  errors={validationErrors}
                 />
               </div>
 
@@ -118,6 +259,7 @@ export default function WorkflowFormPage() {
                   setFiles={(updatedFiles) => 
                     setForm((prev) => ({ ...prev, files: updatedFiles }))
                   }
+                  errors={validationErrors}
                 />
               </div>
 
@@ -150,12 +292,10 @@ export default function WorkflowFormPage() {
                   {activeStep !== 'validation' ? (
                     <Button
                       type="button"
-                      onClick={() => {
-                        const currentIndex = steps.findIndex(s => s.id === activeStep)
-                        setActiveStep(steps[currentIndex + 1].id)
-                      }}
+                      onClick={handleNextStep}
+                      disabled={isSaving}
                     >
-                      Next Step
+                      {isSaving ? 'Saving...' : 'Next Step'}
                     </Button>
                   ) : (
                     <Button type="submit">

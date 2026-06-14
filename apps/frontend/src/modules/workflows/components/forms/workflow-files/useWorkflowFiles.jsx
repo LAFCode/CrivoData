@@ -1,8 +1,12 @@
 import { useState } from 'react';
 
-export function useWorkflowFiles(initialFiles = []) {
-  const [files, setFiles] = useState(initialFiles);
+export function useWorkflowFiles(initialFiles = [], externalFiles = null, onFilesChange = null) {
+  const isControlled = externalFiles !== null;
+  const [localFiles, setLocalFiles] = useState(initialFiles);
   const [notification, setNotification] = useState(null);
+
+  const files = isControlled ? externalFiles : localFiles;
+  const setFiles = isControlled ? onFilesChange : setLocalFiles;
 
   const showToast = (message, type = 'success') => {
     setNotification({ message, type });

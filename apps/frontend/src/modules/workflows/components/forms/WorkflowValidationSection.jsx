@@ -3,43 +3,11 @@ import { Plus, AlertTriangle, Check } from 'lucide-react';
 import { useWorkflowFiles } from './workflow-files/useWorkflowFiles';
 import { FileWorkflowCard } from './workflow-files/FileWorkflowCard';
 
-const INITIAL_STATE = [
-  {
-    id: '1',
-    name: 'Relatório de Vendas Semanal',
-    pattern: 'vendas_*.csv',
-    required: true,
-    maxSize: 15,
-    allowedFormats: ['csv', 'xlsx'],
-    columns: [
-      { id: 'c1', name: 'id_venda', type: 'number', required: true },
-      { id: 'c2', name: 'valor_total', type: 'number', required: true },
-      { id: 'c3', name: 'data_pagamento', type: 'date', required: true },
-      { id: 'c4', name: 'cpf_cliente', type: 'string', required: false }
-    ],
-    customRules: [
-      { id: 'r1', field: 'valor_total', operator: 'greater_than', value: '0', message: 'O valor não pode ser negativo' }
-    ],
-    isExpanded: true
-  },
-  {
-    id: '2',
-    name: 'Cadastro de Novos Clientes',
-    pattern: 'clientes_cadastro_YYYYMMDD.xlsx',
-    required: false,
-    maxSize: 5,
-    allowedFormats: ['xlsx'],
-    columns: [
-      { id: 'c1', name: 'nome', type: 'string', required: true },
-      { id: 'c2', name: 'email', type: 'string', required: true }
-    ],
-    customRules: [],
-    isExpanded: false
-  }
-];
+const INITIAL_STATE = [];
 
-export default function WorkflowFilesSection() {
-  const { files, notification, actions } = useWorkflowFiles(INITIAL_STATE);
+export default function WorkflowFilesSection({ files, setFiles, errors = {} }) {
+  const { files: managedFiles, notification, actions } = useWorkflowFiles(INITIAL_STATE, files, setFiles);
+  const displayFiles = files || managedFiles;
 
   return (
     <div className="w-full bg-white font-sans text-zinc-800">
@@ -81,13 +49,30 @@ export default function WorkflowFilesSection() {
 
         {/* CONTAINER DA LISTA DE ARQUIVOS */}
         <div className="space-y-4">
-          {files.map((file) => (
-            <FileWorkflowCard 
-              key={file.id}
-              file={file}
-              actions={actions}
-            />
-          ))}
+          {displayFiles.length === 0 ? (
+            <div className={`flex flex-col items-center justify-center rounded-2xl border border-dashed bg-zinc-50 py-12 px-6 text-center ${errors.files ? 'border-rose-300' : 'border-zinc-200'}`}>
+              <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-zinc-100">
+                <Plus className="h-5 w-5 text-zinc-400" />
+              </div>
+              <p className="text-sm font-medium text-zinc-700">
+                No expected files configured
+              </p>
+              <p className="mt-1 text-xs text-zinc-500 max-w-xs">
+                Add at least one expected file so the system knows which documents to validate. Click the button above to get started.
+              </p>
+              {errors.files && (
+                <p className="mt-3 text-xs font-medium text-rose-600">{errors.files}</p>
+              )}
+            </div>
+          ) : (
+            displayFiles.map((file) => (
+              <FileWorkflowCard 
+                key={file.id}
+                file={file}
+                actions={actions}
+              />
+            ))
+          )}
         </div>
 
       </div>

@@ -13,6 +13,7 @@ const cronPresets = {
 export default function WorkflowSchedulingSection({
   form,
   setForm,
+  errors = {},
 }) {
   function handlePresetChange(value) {
     setForm((prev) => ({
@@ -60,18 +61,22 @@ export default function WorkflowSchedulingSection({
                 e.target.value,
             }))
           }
-          className="
+          className={`
             h-11
             w-full
             rounded-xl
             border
-            border-zinc-200
             bg-white
             px-3
             text-sm
             outline-none
-          "
+            ${errors.execution_type ? 'border-rose-300' : 'border-zinc-200'}
+          `}
         >
+          <option value="">
+            Select execution type
+          </option>
+
           <option value="manual">
             Manual
           </option>
@@ -84,6 +89,10 @@ export default function WorkflowSchedulingSection({
             Event Driven
           </option>
         </select>
+
+        {errors.execution_type && (
+          <p className="text-xs text-rose-600">{errors.execution_type}</p>
+        )}
       </div>
 
       {/* SCHEDULED CONFIG */}
@@ -102,45 +111,44 @@ export default function WorkflowSchedulingSection({
               Schedule Preset
             </label>
 
-            <select
-              value={form.schedule_preset}
-              onChange={(e) =>
-                handlePresetChange(
-                  e.target.value
+            <div className="flex flex-wrap gap-1.5">
+              {[
+                { value: 'hourly', label: 'Hourly' },
+                { value: 'daily', label: 'Daily' },
+                { value: 'weekly', label: 'Weekly' },
+                { value: 'monthly', label: 'Monthly' },
+              ].map((preset) => {
+                const isSelected = form.schedule_preset === preset.value
+
+                return (
+                  <button
+                    key={preset.value}
+                    type="button"
+                    onClick={() =>
+                      handlePresetChange(
+                        preset.value
+                      )
+                    }
+                    className={`
+                      rounded-lg
+                      border
+                      px-3
+                      py-1.5
+                      text-xs
+                      font-medium
+                      transition-all
+                      ${
+                        isSelected
+                          ? 'border-zinc-800 bg-zinc-800 text-white'
+                          : 'border-zinc-200 bg-white text-zinc-500 hover:border-zinc-300 hover:text-zinc-700'
+                      }
+                    `}
+                  >
+                    {preset.label}
+                  </button>
                 )
-              }
-              className="
-                h-11
-                w-full
-                rounded-xl
-                border
-                border-zinc-200
-                bg-white
-                px-3
-                text-sm
-                outline-none
-              "
-            >
-              <option value="">
-                Select preset
-              </option>
-
-              <option value="hourly">
-                Hourly
-              </option>
-
-              <option value="daily">
-                Daily
-              </option>
-
-              <option value="weekly">
-                Weekly
-              </option>
-
-              <option value="monthly">
-                Monthly
-              </option>
-            </select>
+              })}
+            </div>
           </div>
 
           {/* CRON */}
@@ -194,41 +202,6 @@ export default function WorkflowSchedulingSection({
             />
           </div>
 
-          {/* ENABLED */}
-          <div
-            className="
-              flex
-              items-center
-              justify-between
-              rounded-2xl
-              border
-              border-zinc-200
-              p-4
-            "
-          >
-            <div>
-              <p className="font-medium text-zinc-900">
-                Enable Workflow
-              </p>
-
-              <p className="text-sm text-zinc-500">
-                Allow automatic execution
-              </p>
-            </div>
-
-            <input
-              type="checkbox"
-              checked={form.is_enabled}
-              onChange={(e) =>
-                setForm((prev) => ({
-                  ...prev,
-
-                  is_enabled:
-                    e.target.checked,
-                }))
-              }
-            />
-          </div>
         </>
       )}
     </div>
