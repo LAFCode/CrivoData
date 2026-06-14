@@ -1,0 +1,290 @@
+// CrivoData Database Diagram
+// Generated from SQLAlchemy models
+// Use at https://dbdiagram.io/d
+
+Table users {
+  id integer [pk, increment]
+  username varchar(150) [not null, unique]
+  email varchar(255) [not null, unique]
+  hashed_password varchar(255) [not null]
+  full_name varchar(255)
+  is_active boolean [default: true]
+  is_superuser boolean [default: false]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table workflow_groups {
+  id integer [pk, increment]
+  company_id integer
+  parent_group_id integer
+  name varchar(255) [not null]
+  description text
+  is_active boolean [default: true]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table workflows {
+  id integer [pk, increment]
+  workflow_group_id integer
+  name varchar(255) [not null]
+  slug varchar(255)
+  description text
+  workflow_type varchar(100)
+  status varchar(50) [default: "draft"]
+  is_active boolean [default: true]
+  owner_id integer [not null]
+  execution_type varchar(50)
+  recurrence_type varchar(50)
+  cron_expression varchar(100)
+  timezone varchar(100)
+  expected_files_count integer [default: 1]
+  allow_empty_files boolean [default: false]
+  max_error_threshold integer [default: 0]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table workflow_versions {
+  id integer [pk, increment]
+  workflow_id integer [not null]
+  version_number integer [not null]
+  config json [not null, default: "{}"]
+  is_draft boolean [default: true]
+  created_at timestamp [not null]
+}
+
+Table workflow_steps {
+  id integer [pk, increment]
+  version_id integer [not null]
+  step_order integer [not null]
+  step_type varchar(100) [not null]
+  config json [not null, default: "{}"]
+  created_at timestamp [not null]
+}
+
+Table workflow_file_definitions {
+  id integer [pk, increment]
+  workflow_version_id integer [not null]
+  name varchar(255) [not null]
+  slug varchar(255)
+  description text
+  allowed_extensions json
+  is_required boolean [default: true]
+  accept_multiple boolean [default: false]
+  max_file_size_mb integer [default: 10]
+  validation_order integer [default: 0]
+  schema_columns json
+  custom_rules json
+  created_at timestamp [not null]
+}
+
+Table workflow_validation_rules {
+  id integer [pk, increment]
+  workflow_step_id integer [not null]
+  rule_type varchar(100) [not null]
+  severity varchar(50)
+  error_message text
+  configuration_json json
+  created_at timestamp [not null]
+}
+
+Table workflow_approval_configs {
+  id integer [pk, increment]
+  workflow_version_id integer [not null]
+  enabled boolean [default: false]
+  approval_type varchar(50)
+  minimum_approvers integer [default: 1]
+  created_at timestamp [not null]
+}
+
+Table workflow_executions {
+  id integer [pk, increment]
+  workflow_id integer [not null]
+  workflow_version_id integer [not null]
+  retry_of_execution_id integer
+  status varchar(50) [default: "pending"]
+  started_at timestamp
+  finished_at timestamp
+  triggered_by integer
+  created_at timestamp [not null]
+}
+
+Table workflow_execution_files {
+  id integer [pk, increment]
+  execution_id integer [not null]
+  workflow_file_definition_id integer [not null]
+  storage_path text
+  original_filename varchar(255)
+  mime_type varchar(255)
+  file_size bigInteger
+  checksum varchar(255)
+  uploaded_by integer
+  uploaded_at timestamp
+}
+
+Table workflow_execution_steps {
+  id integer [pk, increment]
+  execution_id integer [not null]
+  workflow_step_id integer [not null]
+  status varchar(50) [default: "pending"]
+  started_at timestamp
+  finished_at timestamp
+  error_message text
+  payload_json json
+  created_at timestamp [not null]
+}
+
+Table workflow_execution_logs {
+  id integer [pk, increment]
+  execution_id integer [not null]
+  execution_step_id integer
+  log_level varchar(50)
+  event_type varchar(100)
+  message text
+  payload_json json
+  created_at timestamp [not null]
+}
+
+Table workflow_approvals {
+  id integer [pk, increment]
+  execution_id integer [not null]
+  approved_by integer
+  status varchar(50) [default: "pending"]
+  comments text
+  approved_at timestamp
+  created_at timestamp [not null]
+}
+
+Table submissions {
+  id integer [pk, increment]
+  workflow_id integer [not null]
+  owner_id integer [not null]
+  file_path varchar(512) [not null]
+  original_filename varchar(255) [not null]
+  file_type varchar(10) [not null]
+  file_size_bytes integer [not null]
+  status varchar(50) [default: "pending"]
+  celery_task_id varchar(255)
+  error_message text
+  created_at timestamp [not null]
+  completed_at timestamp
+}
+
+Table submission_results {
+  id integer [pk, increment]
+  submission_id integer [not null]
+  rule_id integer
+  step_id integer
+  status varchar(50) [not null]
+  details json [not null, default: "{}"]
+  created_at timestamp [not null]
+}
+
+Table validation_rules {
+  id integer [pk, increment]
+  name varchar(255) [not null]
+  description text
+  rule_type varchar(100) [not null]
+  config json [not null, default: "{}"]
+  is_builtin boolean [default: false]
+  is_active boolean [default: true]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table notifications {
+  id integer [pk, increment]
+  user_id integer [not null]
+  title varchar(255) [not null]
+  message text [not null]
+  notification_type varchar(50) [not null]
+  is_read boolean [default: false]
+  metadata_json json
+  created_at timestamp [not null]
+  read_at timestamp
+}
+
+// ─── Relationships ───
+
+// Self-referencing group hierarchy
+Ref: workflow_groups.parent_group_id > workflow_groups.id
+
+// Workflow -> Group
+Ref: workflows.workflow_group_id > workflow_groups.id
+
+// Workflow -> Owner
+Ref: workflows.owner_id > users.id
+
+// Workflow Versions
+Ref: workflow_versions.workflow_id > workflows.id
+
+// Workflow Steps
+Ref: workflow_steps.version_id > workflow_versions.id
+
+// File Definitions
+Ref: workflow_file_definitions.workflow_version_id > workflow_versions.id
+
+// Validation Rules (per step)
+Ref: workflow_validation_rules.workflow_step_id > workflow_steps.id
+
+// Approval Configs
+Ref: workflow_approval_configs.workflow_version_id > workflow_versions.id
+
+// Executions -> Workflow
+Ref: workflow_executions.workflow_id > workflows.id
+
+// Executions -> Version
+Ref: workflow_executions.workflow_version_id > workflow_versions.id
+
+// Executions -> Retry (self-ref)
+Ref: workflow_executions.retry_of_execution_id > workflow_executions.id
+
+// Executions -> Triggered By
+Ref: workflow_executions.triggered_by > users.id
+
+// Execution Files -> Execution
+Ref: workflow_execution_files.execution_id > workflow_executions.id
+
+// Execution Files -> File Definition
+Ref: workflow_execution_files.workflow_file_definition_id > workflow_file_definitions.id
+
+// Execution Files -> Uploaded By
+Ref: workflow_execution_files.uploaded_by > users.id
+
+// Execution Steps -> Execution
+Ref: workflow_execution_steps.execution_id > workflow_executions.id
+
+// Execution Steps -> Step
+Ref: workflow_execution_steps.workflow_step_id > workflow_steps.id
+
+// Execution Logs -> Execution
+Ref: workflow_execution_logs.execution_id > workflow_executions.id
+
+// Execution Logs -> Step
+Ref: workflow_execution_logs.execution_step_id > workflow_execution_steps.id
+
+// Approvals -> Execution
+Ref: workflow_approvals.execution_id > workflow_executions.id
+
+// Approvals -> Approved By
+Ref: workflow_approvals.approved_by > users.id
+
+// Submissions -> Workflow
+Ref: submissions.workflow_id > workflows.id
+
+// Submissions -> Owner
+Ref: submissions.owner_id > users.id
+
+// Submission Results -> Submission
+Ref: submission_results.submission_id > submissions.id
+
+// Submission Results -> Rule
+Ref: submission_results.rule_id > validation_rules.id
+
+// Submission Results -> Step
+Ref: submission_results.step_id > workflow_steps.id
+
+// Notifications -> User
+Ref: notifications.user_id > users.id
