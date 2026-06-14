@@ -7,16 +7,16 @@ export default function LoginPage() {
   const navigate = useNavigate()
   const { login, isLoading, error, clearError } = useAuthStore()
 
-  const [username, setUsername] = useState('')
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!username.trim() || !password.trim()) return
+    if (!email.trim() || !password.trim()) return
 
     try {
-      await login(username.trim(), password)
+      await login(email.trim(), password)
       navigate('/', { replace: true })
     } catch {
       // error is already in the store
@@ -81,18 +81,18 @@ export default function LoginPage() {
             {/* Username */}
             <div>
               <label
-                htmlFor="username"
+                htmlFor="email"
                 className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300"
               >
-                Usuário
+                Email
               </label>
               <input
-                id="username"
-                type="text"
-                autoComplete="username"
-                placeholder="Digite seu usuário"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                id="email"
+                type="email"
+                autoComplete="email"
+                placeholder="Digite seu email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 className="
                   h-12 w-full
                   rounded-2xl
@@ -176,14 +176,13 @@ export default function LoginPage() {
 
             {/* Hint */}
             <p className="text-xs text-zinc-400 dark:text-zinc-500">
-              Credenciais padrão: <strong>admin</strong> /{' '}
-              <strong>admin123</strong>
+              Cadastre-se ou use o email de registro.
             </p>
 
             {/* Submit */}
             <button
               type="submit"
-              disabled={isLoading || !username.trim() || !password.trim()}
+              disabled={isLoading || !email.trim() || !password.trim()}
               className="
                 flex h-12 w-full items-center justify-center gap-2
                 rounded-2xl

@@ -1,63 +1,81 @@
 # Progress
 
 ## What Works
+### Backend (Implemented)
+- **FastAPI project structure** scaffolded under `apps/backend/`
+- **Core modules**: config (Pydantic Settings), async database (SQLAlchemy + asyncpg), JWT security
+- **Auth system**: JWT-based with register/login/refresh endpoints, bearer token dependency
+- **5 SQLAlchemy models** (8 tables): User, Workflow (with WorkflowVersion, WorkflowStep), Submission (with SubmissionResult), ValidationRule, Notification
+- **Pydantic schemas** for all models (User, Workflow, Submission, ValidationRule)
+- **Validation engine**: Plugin-based architecture with `BaseValidator` abstract class, `ValidationEngine` orchestrator, 3 built-in validators (ColumnExists, DataType, Range)
+- **File ingestion**: Parsers for XLSX, CSV, PDF using pandas + PyPDF2 (factory pattern)
+- **Celery worker**: Async `process_submission` task configured with Redis broker
+- **Service layer**: `AuthService` encapsulates login/register/refresh business logic
+- **Workflow service**: `WorkflowService` with `list_by_owner`, `get`, `create`, `update`, `delete`
+- **Workflow CRUD API**: GET/POST/PUT/DELETE `/api/v1/workflows/` with JWT auth
+- **Alembic**: Migration config with initial migration (0001) + workflow fields migration (0002)
+- **15 unit tests** passing (security/JWT + validation engine/rules)
+- **Docker**: Full Docker Compose with 5 services
+- **Automatic migrations**: `entrypoint.sh` runs `alembic upgrade head` on startup
+
+### Frontend (Implemented)
 - **Frontend scaffolding**: Vite + React project initialized with all dependencies installed
 - **Routing structure**: React Router configured with 6 routes (Dashboard, Submissions, Workflows, WorkflowForm, Notifications, Settings)
 - **Module organization**: Feature-based directory structure established across 5 modules
 - **Shared components**: Base components created (EmptyState, FileTypeIcon, PageHeader, StatusBadge, NavigationShell, UI primitives)
 - **i18n configuration**: i18next configured with browser language detector, locale files created (empty)
 - **Utility functions**: cn() helper for Tailwind class merging
+- **Auth service**: Real backend API integration (`POST /api/v1/auth/login` with `{ email, password }`)
+- **LoginPage**: Updated to use email field instead of username
+- **Workflow service**: Axios client with JWT token injection, 401 redirect
+- **WorkflowsPage**: Fetches from real API, dynamic group/status filters, loading/error states
+- **WorkflowFormPage**: Calls `workflowService.create()` on submit, navigates to list on success
 
 ## What's Left to Build
 
 ### Frontend
 - [ ] Wire up AppProviders with actual providers (React Query, Zustand, auth, theme)
-- [ ] Implement page content for all modules (currently skeleton/placeholder)
+- [ ] Implement page content for remaining modules (Dashboard, Submissions, Notifications, Settings)
 - [ ] Build NavigationShell with working navigation
-- [ ] Create API service layer (shared/services/)
 - [ ] Implement state management stores (zustand)
-- [ ] Add authentication/authorization UI
 - [ ] Populate i18n translations
 - [ ] Implement file upload component
 - [ ] Build workflow builder/visual editor
 - [ ] Create notification management UI
 
-### Backend (Not Started)
-- [ ] Initialize FastAPI project structure
-- [ ] Implement API endpoints
-- [ ] Create Celery worker configuration
-- [ ] Build validation engine
-- [ ] Implement file ingestion pipeline (XLSX, CSV, PDF)
-- [ ] Set up database models (PostgreSQL)
-- [ ] Configure Redis for Celery broker
-- [ ] Implement audit system
-- [ ] Add authentication/authorization
-- [ ] Set up S3-compatible storage layer
+### Backend (API Endpoints)
+- [ ] Submissions CRUD + file upload endpoints
+- [ ] Notifications CRUD endpoints
+- [ ] Validation Rules CRUD endpoints
+- [ ] Database seed data for built-in validation rules
 
-### Infrastructure (Not Started)
-- [ ] Docker configuration for backend services
-- [ ] Docker Compose for local development
-- [ ] Kubernetes manifests
+### Infrastructure
+- [ ] Kubernetes manifests (optional)
 - [ ] CI/CD pipeline
 - [ ] Monitoring and logging
 
 ### Testing
 - [ ] Frontend unit tests
-- [ ] Backend unit/integration tests
+- [ ] Backend integration tests (API endpoints)
 - [ ] E2E testing
 
 ## Current Status
 **Phase**: Early Development - Foundation
-**Frontend**: ~15% complete (scaffold + structure, no real UI content)
-**Backend**: 0% complete
-**Infrastructure**: 0% complete
+**Frontend**: ~25% complete (auth + workflows connected to backend)
+**Backend**: ~40% complete (core, auth, validation, ingestion, Celery, Dockerized, workflow CRUD)
+**Infrastructure**: Docker Compose ready
 
 ## Known Issues
-- No issues reported yet (project is too early stage)
+- bcrypt 5.x incompatible with passlib — pinned to `4.1.3`
+- email-validator required for Pydantic EmailStr
 
 ## Evolution of Project Decisions
 - Frontend started as a React SPA with Vite (standard modern setup)
-- Module-based architecture chosen for scalability
-- Tailwind CSS selected for rapid UI development
-- PostgreSQL + Redis chosen for reliability/caching needs
-- Celery chosen for async task processing (validation workloads)
+- Module-based architecture chosen for scalability (both frontend and backend)
+- Async SQLAlchemy for performance; sync fallback for Celery workers
+- Validation engine uses Strategy pattern with plugin-based registration
+- Docker Compose with health checks ensures ordered service startup
+- Alembic runs migrations via sync psycopg2 while app uses async asyncpg
+- Frontend auth uses `crivodata_token` key in localStorage
+- Backend login expects `email` + `password` (not username)
+- Workflow form submits to `POST /api/v1/workflows/` with mapped fields

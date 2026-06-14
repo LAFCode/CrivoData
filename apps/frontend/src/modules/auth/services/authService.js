@@ -1,46 +1,32 @@
-/**
- * Mock auth service.
- *
- * To switch to real API later:
- * 1. Replace the mock credentials check with an axios call
- * 2. Return the same shape { user, token }
- * 3. That's it — the rest of the app stays unchanged.
- */
+import axios from 'axios'
 
-const MOCK_USER = {
-  username: 'admin',
-  password: 'admin123',
-  name: 'Leonardo',
-  role: 'Data Engineer',
-}
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+
+const api = axios.create({
+  baseURL: `${API_BASE}/api/v1`,
+  headers: { 'Content-Type': 'application/json' },
+})
 
 /**
- * Simulates a login request.
+ * Login with username and password via real backend API.
  * @param {string} username
  * @param {string} password
  * @returns {Promise<{ user: { name: string, role: string, username: string }, token: string }>}
  */
-export async function loginService(username, password) {
-  // Simulate network delay
-  await new Promise((resolve) => setTimeout(resolve, 800))
-
-  if (username !== MOCK_USER.username || password !== MOCK_USER.password) {
-    throw new Error('Usuário ou senha inválidos')
-  }
-
-  const { password: _, ...user } = MOCK_USER
+export async function loginService(email, password) {
+  const response = await api.post('/auth/login', { email, password })
+  const { access_token, refresh_token } = response.data
 
   return {
-    user,
-    token: 'mock-jwt-token-' + Date.now(),
+    user: { username: email, name: email, role: 'User' },
+    token: access_token,
   }
 }
 
 /**
- * Placeholder for a real token validation call.
+ * Validate stored token on app boot.
  * Currently just returns the stored user.
  */
 export async function validateTokenService(token) {
-  // In the future: GET /auth/me with the token in the header
   return JSON.parse(localStorage.getItem('crivodata_user'))
 }

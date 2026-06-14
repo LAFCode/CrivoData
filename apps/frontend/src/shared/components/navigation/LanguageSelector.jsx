@@ -1,6 +1,26 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Languages } from 'lucide-react'
+import { Languages, Check } from 'lucide-react'
+
+function LanguageOption({ active, label, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`
+        w-full flex items-center justify-between
+        px-3 py-2.5 rounded-lg
+        text-sm font-medium transition-all
+        ${active
+          ? 'bg-zinc-800 text-white'
+          : 'text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-200'
+        }
+      `}
+    >
+      <span>{label}</span>
+      {active && <Check className="h-4 w-4 text-white" />}
+    </button>
+  )
+}
 
 export default function LanguageSelector({ collapsed }) {
   const [isOpen, setIsOpen] = useState(false)

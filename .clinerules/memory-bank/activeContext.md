@@ -1,63 +1,72 @@
 # Active Context
 
 ## Current Work Focus
-Implemented mock authentication system with modern login page.
+Frontend Workflows module fully connected to backend API. Auth flow uses real backend API.
 
 ## Recent Changes
-- **Auth module** created under `src/modules/auth/` with service, store, page, and components
-- **Login page** — modern split-panel design with branding sidebar and form card
-- **Auth store** (Zustand) with login, logout, session validation, and error handling
-- **Auth service** — mock layer easily swappable to real API (same return shape)
-- **ProtectedRoute** component wrapping all authenticated routes
-- **Routing** updated: `/login` is public, all other routes require authentication
-- **Sidebar** now reads user from auth store (instead of hardcoded)
-- **Logout button** added to SidebarUser
+- **Workflow model** updated with `status`, `group_name`, `workflow_type`, `recurrence_type`, `expected_files_count` fields
+- **Alembic migration 0002** created and auto-applied on container startup
+- **Workflow CRUD API** endpoints created: GET/POST/PUT/DELETE `/api/v1/workflows/`
+- **Workflow service** created with `list_by_owner`, `get`, `create`, `update`, `delete`
+- **Frontend workflowService.js** created with Axios client, JWT token injection, 401 redirect
+- **WorkflowsPage.jsx** updated to fetch from real API instead of mock data
+- **WorkflowFormPage.jsx** updated to call `workflowService.create()` on submit
+- **Auth service** updated to use real backend API (`POST /api/v1/auth/login` with `{ email, password }`)
+- **LoginPage.jsx** updated to use email field instead of username
+- **Token key** aligned: frontend uses `crivodata_token` in localStorage
+- **bcrypt** pinned to 4.1.3 in requirements.txt for passlib compatibility
 
 ## Current State
-- **Frontend**: ~20% complete (scaffold + auth + routing, pages still placeholder)
-- **Backend**: 0% complete
-- **Infrastructure**: 0% complete
+- **Frontend**: ~25% complete (auth + workflows connected to backend)
+- **Backend**: ~40% complete (core, auth, validation, ingestion, Celery, Dockerized, workflow CRUD)
+- **Infrastructure**: Docker Compose ready
+
+## Docker Compose Services
+| Service | Image | Ports |
+|---|---|---|
+| `postgres` | postgres:16-alpine | 5432 |
+| `redis` | redis:7-alpine | 6379 |
+| `minio` | minio/minio:latest | 9000, 9001 |
+| `backend` | custom (apps/backend/Dockerfile) | 8000 |
+| `celery-worker` | custom (same image) | - |
+
+## Development Credentials
+- **Email**: `test@test.com`
+- **Password**: `test123`
+
+## API Endpoints
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/api/v1/auth/register` | Register user |
+| `POST` | `/api/v1/auth/login` | Login (email + password) |
+| `POST` | `/api/v1/auth/refresh` | Refresh token |
+| `GET` | `/api/v1/auth/me` | Current user |
+| `GET` | `/api/v1/workflows/` | List workflows |
+| `GET` | `/api/v1/workflows/{id}` | Get workflow |
+| `POST` | `/api/v1/workflows/` | Create workflow |
+| `PUT` | `/api/v1/workflows/{id}` | Update workflow |
+| `DELETE` | `/api/v1/workflows/{id}` | Delete workflow |
 
 ## Next Steps
-1. Build out page components with real UI content (Dashboard, Workflows, Submissions, etc.)
-2. Create API service layer in shared/services/
-3. Implement backend (FastAPI + Celery workers)
-4. Build validation engine
-5. Implement file ingestion pipeline
+1. Build remaining API endpoints (submissions, notifications, rules)
+2. Implement file upload component
+3. Build workflow builder/visual editor
+4. Add multi-tenant support
+5. Implement approval flow
+6. Add database seed data
 
 ## Active Decisions and Considerations
+- Migration runs automatically on container startup via `alembic upgrade head` in `entrypoint.sh`
+- Alembic uses sync `psycopg2` connection for migrations while the app uses async `asyncpg`
+- bcrypt pinned to 4.1.3 for passlib compatibility (5.x breaks passlib)
+- email-validator installed for Pydantic `EmailStr` support
+- Frontend auth uses `crivodata_token` key in localStorage
+- Backend login expects `email` + `password` (not username)
+- Workflow form submits to `POST /api/v1/workflows/` with mapped fields
 
-### Auth Implementation
-- Zustand store with localStorage persistence for token/user
-- Service layer abstracts mock vs real API — switch by editing `authService.js`
-- Protected routes use wrapper pattern (ProtectedRoute component)
-- Logout clears local state and redirects to /login
-- Default credentials: `admin` / `admin123`
-
-### Internationalization
-i18n config and locale structure exists but translations are empty. Consider:
-- Default language (Portuguese? English?)
-- Translation strategy (inline vs separate files)
-- When to populate translations (now vs later)
-
-### Backend Architecture
-Backend is fully unimplemented. Key decisions pending:
-- Project structure (monorepo in /apps/backend? or /backend/?)
-- API contract design
-- Authentication strategy
-
-## Important Patterns and Preferences
-- Module-based frontend organization (already established)
-- Shared components library pattern
-- Service layer for API abstraction
-- Tailwind CSS for styling (Vite plugin integration)
-- `@/` path alias pointing to `src/`
-- Zustand stores for client state (auth, etc.)
-- Protected routes with Navigate redirect
-
-## Learnings and Project Insights
-- Project is in very early development stage
-- Frontend has good foundational structure but no real UI content
-- Backend is completely unimplemented
-- Enterprise features (RBAC, multi-tenant) are planned but not started
-- Portuguese README suggests target audience or development team may be Portuguese/Brazilian
+### Test Results
+- 15/15 unit tests pass locally
+- Docker health check confirmed: `200 OK`
+- Alembic migration logs confirm: `Running upgrade 0001 -> 0002`
+- Auth register + login confirmed working
+- Workflow CRUD confirmed working (create, list)
