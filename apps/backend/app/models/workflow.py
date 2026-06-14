@@ -31,14 +31,24 @@ class Workflow(Base):
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     slug: Mapped[str | None] = mapped_column(String(255), nullable=True)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
-    workflow_type: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    status: Mapped[str] = mapped_column(String(50), default="draft")
+    status_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("workflow_statuses.id"), nullable=True
+    )
+    workflow_type_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("workflow_types.id"), nullable=True
+    )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     owner_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
-    execution_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
-    recurrence_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    execution_type_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("execution_types.id"), nullable=True
+    )
+    recurrence_type_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("recurrence_types.id"), nullable=True
+    )
     cron_expression: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    timezone: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    timezone_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("timezones.id"), nullable=True
+    )
     expected_files_count: Mapped[int] = mapped_column(Integer, default=1)
     allow_empty_files: Mapped[bool] = mapped_column(Boolean, default=False)
     max_error_threshold: Mapped[int] = mapped_column(Integer, default=0)
@@ -58,6 +68,11 @@ class Workflow(Base):
     )
     submissions = relationship("Submission", back_populates="workflow")
     executions = relationship("WorkflowExecution", back_populates="workflow")
+    status_ref = relationship("WorkflowStatus", back_populates="workflows")
+    workflow_type_ref = relationship("WorkflowType", back_populates="workflows")
+    execution_type_ref = relationship("ExecutionType", back_populates="workflows")
+    recurrence_type_ref = relationship("RecurrenceType", back_populates="workflows")
+    timezone_ref = relationship("Timezone", back_populates="workflows")
 
     def __repr__(self) -> str:
         return f"<Workflow(id={self.id}, name={self.name})>"

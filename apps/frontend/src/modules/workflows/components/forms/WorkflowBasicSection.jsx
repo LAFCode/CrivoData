@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 
 import Input from '@/shared/components/ui/Input'
 import { groupService } from '@/shared/services/groupService'
+import { lookupService } from '@/shared/services/lookupService'
 
 export default function WorkflowBasicSection({
   form,
@@ -13,22 +14,30 @@ export default function WorkflowBasicSection({
   const [groups, setGroups] = useState([])
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState(null)
+  const [statuses, setStatuses] = useState([])
+  const [workflowTypes, setWorkflowTypes] = useState([])
 
   useEffect(() => {
-    async function fetchGroups() {
+    async function fetchData() {
       try {
         setLoading(true)
         setFetchError(null)
-        const res = await groupService.list()
-        setGroups(res.data || [])
+        const [groupsRes, statusesRes, typesRes] = await Promise.all([
+          groupService.list(),
+          lookupService.listWorkflowStatuses(),
+          lookupService.listWorkflowTypes(),
+        ])
+        setGroups(groupsRes.data || [])
+        setStatuses(statusesRes.data || [])
+        setWorkflowTypes(typesRes.data || [])
       } catch (err) {
-        console.error('Failed to fetch workflow groups:', err)
-        setFetchError('Failed to load groups')
+        console.error('Failed to fetch lookup data:', err)
+        setFetchError('Failed to load data')
       } finally {
         setLoading(false)
       }
     }
-    fetchGroups()
+    fetchData()
   }, [])
 
   function handleNameChange(value) {
@@ -199,30 +208,68 @@ export default function WorkflowBasicSection({
           </h3>
         </div>
 
-        {/* STATUS */}
-        <div className="space-y-2">
-          <label htmlFor="status" className="text-sm font-medium text-zinc-700">
-            {t('workflows.workflowStatus')}
-          </label>
-          <select
-            id="status"
-            value={form.status}
-            onChange={(e) =>
-              setForm((prev) => ({
-                ...prev,
-                status: e.target.value,
-              }))
-            }
-            className="h-11 w-full rounded-2xl border border-zinc-200 bg-white px-3 text-sm outline-none transition-colors focus:border-zinc-400"
-          >
-            <option value="draft">{t('workflows.draft')}</option>
-            <option value="active">{t('workflows.active')}</option>
-            <option value="paused">{t('workflows.paused')}</option>
-            <option value="archived">{t('workflows.archived')}</option>
-          </select>
-          <p className="text-xs text-zinc-500">
-            {t('workflows.workflowStatusHelp')}
-          </p>
+        {/* STATUS (from lookup table) */}
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <label htmlFor="status" className="text-sm font-medium text-zinc-700">
+              {t('workflows.workflowStatus')}
+            </label>
+            <select
+              id="status"
+              value={form.status_id || ''}
+              disabled={loading}
+              onChange={(e) =>
+                setForm((prev) => ({
+                  ...prev,
+                  status_id: e.target.value ? Number(e.target.value) : null,
+                }))
+              }
+              className="h-11 w-full rounded-2xl border border-zinc-200 bg-white px-3 text-sm outline-none transition-colors focus:border-zinc-400"
+            >
+              <option value="">
+                {loading ? 'Loading...' : 'Select status'}
+              </option>
+              {statuses.map((s) => (
+                <option key={s.id} value={String(s.id)}>
+                  {s.name.charAt(0).toUpperCase() + s.name.slice(1)}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-zinc-500">
+              {t('workflows.workflowStatusHelp')}
+            </p>
+          </div>
+
+          {/* WORKFLOW TYPE (from lookup table) */}
+          <div className="space-y-2">
+            <label htmlFor="workflow_type" className="text-sm font-medium text-zinc-700">
+              {t('workflows.workflowType') || 'Workflow Type'}
+            </label>
+            <select
+              id="workflow_type"
+              value={form.workflow_type_id || ''}
+              disabled={loading}
+              onChange={(e) =>
+                setForm((prev) => ({
+                  ...prev,
+                  workflow_type_id: e.target.value ? Number(e.target.value) : null,
+                }))
+              }
+              className="h-11 w-full rounded-2xl border border-zinc-200 bg-white px-3 text-sm outline-none transition-colors focus:border-zinc-400"
+            >
+              <option value="">
+                {loading ? 'Loading...' : 'Select type'}
+              </option>
+              {workflowTypes.map((t) => (
+                <option key={t.id} value={String(t.id)}>
+                  {t.name.charAt(0).toUpperCase() + t.name.slice(1)}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-zinc-500">
+              Defines the validation mode for this workflow
+            </p>
+          </div>
         </div>
       </div>
     </div>

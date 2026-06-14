@@ -6,7 +6,8 @@
 - **Core modules**: config (Pydantic Settings), async database (SQLAlchemy + asyncpg), JWT security
 - **Auth system**: JWT-based with register/login/refresh endpoints, bearer token dependency
 - **15 SQLAlchemy models** (18 tables): User, Workflow (with WorkflowVersion, WorkflowFileDefinition, WorkflowStep), WorkflowValidationRule, WorkflowApprovalConfig, WorkflowExecution, WorkflowExecutionFile, WorkflowExecutionStep, WorkflowExecutionLog, WorkflowApproval, Submission (with SubmissionResult), ValidationRule, Notification, WorkflowGroup (self-referencing)
-- **Pydantic schemas** for all models (User, Workflow, Submission, ValidationRule, WorkflowGroup)
+- **5 lookup tables**: WorkflowStatus, WorkflowType, RecurrenceType, ExecutionType, Timezone — all with seed data
+- **Pydantic schemas** for all models (User, Workflow, Submission, ValidationRule, WorkflowGroup) + lookup schemas
 - **Validation engine**: Plugin-based architecture with `BaseValidator` abstract class, `ValidationEngine` orchestrator, 3 built-in validators (ColumnExists, DataType, Range)
 - **File ingestion**: Parsers for XLSX, CSV, PDF using pandas + PyPDF2 (factory pattern)
 - **Celery worker**: Async `process_submission` task configured with Redis broker
@@ -14,11 +15,11 @@
 - **Workflow service**: `WorkflowService` with `list_by_owner`, `get`, `create`, `update`, `delete` — auto-creates version v1 and file definitions
 - **Workflow CRUD API**: GET/POST/PUT/DELETE `/api/v1/workflows/` with JWT auth
 - **Workflow Groups API**: GET `/api/v1/workflow-groups/` with JWT auth, returns only top-level groups with children eager-loaded
-- **Alembic**: Migration config with 5 migrations (0001-0004, 0007), self-referencing workflow_groups with seed data
+- **Lookups API**: GET `/api/v1/lookups/workflow-statuses`, `/api/v1/lookups/workflow-types`, `/api/v1/lookups/recurrence-types`, `/api/v1/lookups/execution-types`, `/api/v1/lookups/timezones` — all with JWT auth
+- **Alembic**: Migration config with 5 migrations (0001-0004, 0007, 0008), self-referencing workflow_groups with seed data, normalized workflow enum fields
 - **15 unit tests** passing (security/JWT + validation engine/rules)
 - **Docker**: Full Docker Compose with 6 services (including frontend in dev override)
 - **Automatic migrations**: `entrypoint.sh` runs `alembic upgrade head` on startup
-- **Seed data**: Migration 0007 seeds 3 top-level groups (HR, Finance, Operations) with 8 children
 
 ### Frontend (Implemented)
 - **Frontend scaffolding**: Vite + React project initialized with all dependencies installed
@@ -69,8 +70,8 @@
 
 ## Current Status
 **Phase**: Early Development - Foundation
-**Frontend**: ~35% complete (auth + workflows connected to backend, form persistence done)
-**Backend**: ~50% complete (core, auth, validation, ingestion, Celery, Dockerized, workflow CRUD, file definitions, self-ref groups)
+**Frontend**: ~40% complete (auth + workflows connected to backend, form persistence done, lookup tables integrated)
+**Backend**: ~55% complete (core, auth, validation, ingestion, Celery, Dockerized, workflow CRUD, file definitions, self-ref groups, 5 lookup tables with API)
 **Infrastructure**: Docker Compose ready
 
 ## Known Issues

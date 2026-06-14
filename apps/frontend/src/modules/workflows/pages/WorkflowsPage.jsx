@@ -80,11 +80,11 @@ export default function WorkflowsPage() {
 
     const unique = [
 
-      ...new Set(workflows.map((w) => w.status).filter(Boolean)),
+      ...new Set(workflows.map((w) => w.status_id).filter((id) => id != null)),
 
     ]
 
-    return ['All Status', ...unique]
+    return ['All Status', ...unique.map(String)]
 
   }, [workflows])
 
@@ -116,7 +116,7 @@ export default function WorkflowsPage() {
 
           ? true
 
-          : workflow.status ===
+          : String(workflow.status_id) ===
 
             selectedStatus
 

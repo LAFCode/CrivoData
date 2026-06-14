@@ -65,7 +65,7 @@ export default function WorkflowCard({
         </div>
 
         <div className="flex items-center gap-2">
-          <StatusBadge status={workflow.status} />
+          <StatusBadge status={workflow.status_id} />
 
           <button
             className="
@@ -122,7 +122,7 @@ export default function WorkflowCard({
             text-zinc-700
           "
         >
-          {workflow.workflow_type}
+          {workflow.workflow_type_id ? `Type #${workflow.workflow_type_id}` : 'No Type'}
         </span>
       </div>
 

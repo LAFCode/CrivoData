@@ -19,6 +19,13 @@ from app.schemas.submission import (
 )
 from app.schemas.rule import ValidationRuleCreate, ValidationRuleRead, ValidationRuleUpdate
 from app.schemas.group import WorkflowGroupCreate, WorkflowGroupRead
+from app.schemas.lookup import (
+    WorkflowStatusRead,
+    WorkflowTypeRead,
+    RecurrenceTypeRead,
+    ExecutionTypeRead,
+    TimezoneRead,
+)
 
 __all__ = [
     "UserCreate",
@@ -42,4 +49,9 @@ __all__ = [
     "ValidationRuleUpdate",
     "WorkflowGroupCreate",
     "WorkflowGroupRead",
+    "WorkflowStatusRead",
+    "WorkflowTypeRead",
+    "RecurrenceTypeRead",
+    "ExecutionTypeRead",
+    "TimezoneRead",
 ]

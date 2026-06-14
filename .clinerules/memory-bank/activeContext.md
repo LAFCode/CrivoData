@@ -43,9 +43,8 @@ Workflow Groups architecture refactored to self-referencing `workflow_groups` ta
 - **`apps/frontend/Dockerfile.dev`** — Node 22 Alpine image running `npm run dev -- --host 0.0.0.0`.
 
 ## Current State
-- **Frontend**: ~35% complete (groups now DB-backed with self-ref hierarchy, auto-save on step transition)
-- **Backend**: ~50% complete (self-referencing workflow_groups, CRUD + API, 3 migrations total — 0001-0004 + 0007)
-- **Infrastructure**: Docker Compose ready with dev override
+- **Frontend**: ~40% complete (lookup tables integrated for status, workflow_type, execution_type, recurrence_type, timezone)
+- **Backend**: ~55% complete (5 lookup tables created, seeded, and wired into workflow model via FK IDs)
 
 ## Docker Compose Services (Production)
 | Service | Image | Ports |

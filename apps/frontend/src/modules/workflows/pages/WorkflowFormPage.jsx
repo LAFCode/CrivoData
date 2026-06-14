@@ -40,12 +40,13 @@ export default function WorkflowFormPage() {
     slug: '',
     workflow_group_id: '',
     description: '',
-    status: 'draft',
-    workflow_type: 'strict',
-    execution_type: 'manual',
-    scheduling_type: 'daily',
+    status_id: null,
+    workflow_type_id: null,
+    execution_type_id: null,
+    recurrence_type_id: null,
+    schedule_preset: '',
     cron_expression: '0 8 * * *',
-    timezone: 'America/Sao_Paulo',
+    timezone_id: null,
     allow_empty_files: false,
     max_error_threshold: 0,
     files: [],
@@ -67,8 +68,8 @@ export default function WorkflowFormPage() {
     }
 
     if (stepId === 'scheduling') {
-      if (!form.execution_type) {
-        errors.execution_type = 'Select an execution type'
+      if (!form.execution_type_id) {
+        errors.execution_type_id = 'Select an execution type'
       }
     }
 
@@ -93,8 +94,8 @@ export default function WorkflowFormPage() {
       allErrors.workflow_group_id = 'Select a group'
     }
 
-    if (!form.execution_type) {
-      allErrors.execution_type = 'Select an execution type'
+    if (!form.execution_type_id) {
+      allErrors.execution_type_id = 'Select an execution type'
     }
 
     if (form.files.length === 0) {
@@ -113,13 +114,13 @@ export default function WorkflowFormPage() {
     if (Object.keys(allErrors).length > 0) {
       // Scroll to the first step with errors
       if (allErrors.name || allErrors.workflow_group_id) setActiveStep('basic')
-      else if (allErrors.execution_type) setActiveStep('scheduling')
+      else if (allErrors.execution_type_id) setActiveStep('scheduling')
       else if (allErrors.files) setActiveStep('validation')
 
       const missing = []
       if (allErrors.name) missing.push('Workflow name')
       if (allErrors.workflow_group_id) missing.push('Group')
-      if (allErrors.execution_type) missing.push('Execution type')
+      if (allErrors.execution_type_id) missing.push('Execution type')
       if (allErrors.files) missing.push('At least one expected file')
 
       setNotification({
@@ -134,13 +135,13 @@ export default function WorkflowFormPage() {
         name: form.name,
         slug: form.slug,
         description: form.description,
-        status: form.status,
-        workflow_type: form.workflow_type,
         workflow_group_id: form.workflow_group_id ? Number(form.workflow_group_id) : null,
-        execution_type: form.execution_type,
-        recurrence_type: form.scheduling_type,
+        status_id: form.status_id,
+        workflow_type_id: form.workflow_type_id,
+        execution_type_id: form.execution_type_id,
+        recurrence_type_id: form.recurrence_type_id,
         cron_expression: form.cron_expression,
-        timezone: form.timezone,
+        timezone_id: form.timezone_id,
         expected_files_count: form.files.length,
         allow_empty_files: form.allow_empty_files,
         max_error_threshold: form.max_error_threshold,

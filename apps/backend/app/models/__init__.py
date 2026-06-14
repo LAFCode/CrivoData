@@ -18,6 +18,13 @@ from app.models.submission import Submission, SubmissionResult
 from app.models.rule import ValidationRule
 from app.models.notification import Notification
 from app.models.group import WorkflowGroup
+from app.models.lookup import (
+    WorkflowStatus,
+    WorkflowType,
+    RecurrenceType,
+    ExecutionType,
+    Timezone,
+)
 
 __all__ = [
     "User",
@@ -37,4 +44,9 @@ __all__ = [
     "ValidationRule",
     "Notification",
     "WorkflowGroup",
+    "WorkflowStatus",
+    "WorkflowType",
+    "RecurrenceType",
+    "ExecutionType",
+    "Timezone",
 ]
