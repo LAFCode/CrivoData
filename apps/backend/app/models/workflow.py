@@ -25,13 +25,16 @@ class Workflow(Base):
     __tablename__ = "workflows"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    workflow_group_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("workflow_groups.id"), nullable=True
+    )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     slug: Mapped[str | None] = mapped_column(String(255), nullable=True)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
-    status: Mapped[str] = mapped_column(String(50), default="draft")
     workflow_type: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    group_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    subgroup_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    status: Mapped[str] = mapped_column(String(50), default="draft")
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    owner_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
     execution_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
     recurrence_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
     cron_expression: Mapped[str | None] = mapped_column(String(100), nullable=True)
@@ -39,8 +42,6 @@ class Workflow(Base):
     expected_files_count: Mapped[int] = mapped_column(Integer, default=1)
     allow_empty_files: Mapped[bool] = mapped_column(Boolean, default=False)
     max_error_threshold: Mapped[int] = mapped_column(Integer, default=0)
-    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
-    owner_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )

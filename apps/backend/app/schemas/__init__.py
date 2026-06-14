@@ -18,6 +18,7 @@ from app.schemas.submission import (
     SubmissionResultRead,
 )
 from app.schemas.rule import ValidationRuleCreate, ValidationRuleRead, ValidationRuleUpdate
+from app.schemas.group import WorkflowGroupCreate, WorkflowGroupRead
 
 __all__ = [
     "UserCreate",
@@ -39,4 +40,6 @@ __all__ = [
     "ValidationRuleCreate",
     "ValidationRuleRead",
     "ValidationRuleUpdate",
+    "WorkflowGroupCreate",
+    "WorkflowGroupRead",
 ]

@@ -59,7 +59,7 @@ export default function WorkflowCard({
                 text-zinc-600
               "
             >
-              {workflow.group_name}
+              {workflow.workflow_group_id ? `Group #${workflow.workflow_group_id}` : 'No Group'}
             </span>
           </div>
         </div>

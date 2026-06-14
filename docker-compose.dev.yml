@@ -1,0 +1,93 @@
+# Development override for docker-compose.yml
+# Enables hot-reload for both backend (uvicorn --reload) and frontend (Vite HMR)
+# with volume mounts for real-time code changes.
+#
+# Usage: docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+
+services:
+  backend:
+    build:
+      context: ./apps/backend
+      dockerfile: Dockerfile
+    container_name: crivo-backend-dev
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mount the entire app directory for live code reload
+      - ./apps/backend:/app
+    environment:
+      APP_ENV: development
+      APP_DEBUG: "true"
+      APP_SECRET_KEY: change-me-in-production
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/crivo_data
+      DATABASE_URL_SYNC: postgresql://postgres:postgres@postgres:5432/crivo_data
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+      S3_ENDPOINT: http://minio:9000
+      S3_ACCESS_KEY: minioadmin
+      S3_SECRET_KEY: minioadmin
+      S3_BUCKET: crivo-data-files
+      CORS_ORIGINS: http://localhost:5173,http://localhost:3000
+      # Bypass entrypoint's alembic migration (handled by init-container instead)
+      SKIP_MIGRATIONS: "false"
+    # Entrypoint already runs alembic upgrade head, so only start uvicorn with --reload
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+
+  celery-worker:
+    build:
+      context: ./apps/backend
+      dockerfile: Dockerfile
+    container_name: crivo-celery-worker-dev
+    volumes:
+      # Mount code for live reload (celery auto-reload with --autoreload)
+      - ./apps/backend:/app
+    command: >
+      sh -c "celery -A app.workers.celery_app worker --loglevel=info --concurrency=2 --autoreload"
+    environment:
+      APP_ENV: development
+      APP_DEBUG: "true"
+      APP_SECRET_KEY: change-me-in-production
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/crivo_data
+      DATABASE_URL_SYNC: postgresql://postgres:postgres@postgres:5432/crivo_data
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+      S3_ENDPOINT: http://minio:9000
+      S3_ACCESS_KEY: minioadmin
+      S3_SECRET_KEY: minioadmin
+      S3_BUCKET: crivo-data-files
+      CORS_ORIGINS: http://localhost:5173,http://localhost:3000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./apps/frontend
+      dockerfile: Dockerfile.dev
+    container_name: crivo-frontend-dev
+    ports:
+      - "5173:5173"
+    volumes:
+      # Mount the entire frontend directory for Vite HMR
+      - ./apps/frontend:/app
+      # Anonymous volume to prevent node_modules from being overwritten by mount
+      - /app/node_modules
+    environment:
+      VITE_API_URL: http://localhost:8000
+      # Required for Vite HMR inside Docker
+      VITE_HOST: 0.0.0.0
+    depends_on:
+      - backend

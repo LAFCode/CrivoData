@@ -68,11 +68,11 @@ export default function WorkflowsPage() {
 
     const unique = [
 
-      ...new Set(workflows.map((w) => w.group_name).filter(Boolean)),
+      ...new Set(workflows.map((w) => w.workflow_group_id).filter((id) => id != null)),
 
     ]
 
-    return ['All Groups', ...unique]
+    return ['All Groups', ...unique.map(String)]
 
   }, [workflows])
 
@@ -98,12 +98,6 @@ export default function WorkflowsPage() {
 
           .toLowerCase()
 
-          .includes(search.toLowerCase()) ||
-
-        (workflow.group_name || '')
-
-          .toLowerCase()
-
           .includes(search.toLowerCase())
 
       const matchesGroup =
@@ -112,7 +106,7 @@ export default function WorkflowsPage() {
 
           ? true
 
-          : workflow.group_name ===
+          : String(workflow.workflow_group_id) ===
 
             selectedGroup
 

@@ -39,19 +39,15 @@ export default function WorkflowFormPage() {
     name: '',
     slug: '',
     workflow_group_id: '',
-    workflow_subgroup_id: '',
     description: '',
     status: 'draft',
+    workflow_type: 'strict',
+    execution_type: 'manual',
     scheduling_type: 'daily',
     cron_expression: '0 8 * * *',
     timezone: 'America/Sao_Paulo',
-    
-    // Configurações Gerais do Workflow
-    validation_type: 'strict',
     allow_empty_files: false,
     max_error_threshold: 0,
-    
-    // Lista de arquivos esperados
     files: [],
   })
 
@@ -139,9 +135,8 @@ export default function WorkflowFormPage() {
         slug: form.slug,
         description: form.description,
         status: form.status,
-        workflow_type: form.validation_type,
-        group_name: form.workflow_group_id,
-        subgroup_name: form.workflow_subgroup_id,
+        workflow_type: form.workflow_type,
+        workflow_group_id: form.workflow_group_id ? Number(form.workflow_group_id) : null,
         execution_type: form.execution_type,
         recurrence_type: form.scheduling_type,
         cron_expression: form.cron_expression,
@@ -406,7 +401,7 @@ export default function WorkflowFormPage() {
 
                   <div>
                     <p className="text-xs text-zinc-500">Validation Mode</p>
-                    <p className="text-sm font-medium text-zinc-900 capitalize">{form.validation_type}</p>
+                    <p className="text-sm font-medium text-zinc-900 capitalize">{form.workflow_type}</p>
                   </div>
 
                   <div>

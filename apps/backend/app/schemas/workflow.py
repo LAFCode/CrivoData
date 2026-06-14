@@ -59,10 +59,12 @@ class WorkflowBase(BaseModel):
     name: str
     slug: str | None = None
     description: str | None = None
-    status: str = "draft"
     workflow_type: str | None = None
-    group_name: str | None = None
-    subgroup_name: str | None = None
+    status: str = "draft"
+    workflow_group_id: int | None = None
+
+
+class WorkflowCreate(WorkflowBase):
     execution_type: str | None = None
     recurrence_type: str | None = None
     cron_expression: str | None = None
@@ -70,9 +72,6 @@ class WorkflowBase(BaseModel):
     expected_files_count: int = 1
     allow_empty_files: bool = False
     max_error_threshold: int = 0
-
-
-class WorkflowCreate(WorkflowBase):
     file_definitions: list[WorkflowFileDefinitionCreate] = []
 
 
@@ -82,8 +81,7 @@ class WorkflowUpdate(BaseModel):
     description: str | None = None
     status: str | None = None
     workflow_type: str | None = None
-    group_name: str | None = None
-    subgroup_name: str | None = None
+    workflow_group_id: int | None = None
     execution_type: str | None = None
     recurrence_type: str | None = None
     cron_expression: str | None = None
@@ -98,6 +96,13 @@ class WorkflowRead(WorkflowBase):
     id: int
     is_active: bool
     owner_id: int
+    execution_type: str | None = None
+    recurrence_type: str | None = None
+    cron_expression: str | None = None
+    timezone: str | None = None
+    expected_files_count: int = 1
+    allow_empty_files: bool = False
+    max_error_threshold: int = 0
     created_at: datetime
     updated_at: datetime
 
@@ -129,8 +134,7 @@ class WorkflowList(BaseModel):
     description: str | None = None
     status: str
     workflow_type: str | None = None
-    group_name: str | None = None
-    subgroup_name: str | None = None
+    workflow_group_id: int | None = None
     execution_type: str | None = None
     recurrence_type: str | None = None
     cron_expression: str | None = None

@@ -17,6 +17,7 @@ from app.models.workflow import (
 from app.models.submission import Submission, SubmissionResult
 from app.models.rule import ValidationRule
 from app.models.notification import Notification
+from app.models.group import WorkflowGroup
 
 __all__ = [
     "User",
@@ -35,4 +36,5 @@ __all__ = [
     "SubmissionResult",
     "ValidationRule",
     "Notification",
+    "WorkflowGroup",
 ]
