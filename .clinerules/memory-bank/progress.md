@@ -5,18 +5,20 @@
 - **FastAPI project structure** scaffolded under `apps/backend/`
 - **Core modules**: config (Pydantic Settings), async database (SQLAlchemy + asyncpg), JWT security
 - **Auth system**: JWT-based with register/login/refresh endpoints, bearer token dependency
-- **13 SQLAlchemy models** (17 tables): User, Workflow (with WorkflowVersion, WorkflowFileDefinition, WorkflowStep), WorkflowValidationRule, WorkflowApprovalConfig, WorkflowExecution, WorkflowExecutionFile, WorkflowExecutionStep, WorkflowExecutionLog, WorkflowApproval, Submission (with SubmissionResult), ValidationRule, Notification
-- **Pydantic schemas** for all models (User, Workflow, Submission, ValidationRule)
+- **15 SQLAlchemy models** (18 tables): User, Workflow (with WorkflowVersion, WorkflowFileDefinition, WorkflowStep), WorkflowValidationRule, WorkflowApprovalConfig, WorkflowExecution, WorkflowExecutionFile, WorkflowExecutionStep, WorkflowExecutionLog, WorkflowApproval, Submission (with SubmissionResult), ValidationRule, Notification, WorkflowGroup (self-referencing)
+- **Pydantic schemas** for all models (User, Workflow, Submission, ValidationRule, WorkflowGroup)
 - **Validation engine**: Plugin-based architecture with `BaseValidator` abstract class, `ValidationEngine` orchestrator, 3 built-in validators (ColumnExists, DataType, Range)
 - **File ingestion**: Parsers for XLSX, CSV, PDF using pandas + PyPDF2 (factory pattern)
 - **Celery worker**: Async `process_submission` task configured with Redis broker
 - **Service layer**: `AuthService` encapsulates login/register/refresh business logic
 - **Workflow service**: `WorkflowService` with `list_by_owner`, `get`, `create`, `update`, `delete` — auto-creates version v1 and file definitions
 - **Workflow CRUD API**: GET/POST/PUT/DELETE `/api/v1/workflows/` with JWT auth
-- **Alembic**: Migration config with 4 migrations (0001 initial, 0002 workflow fields, 0003 extra columns, 0004 new tables)
+- **Workflow Groups API**: GET `/api/v1/workflow-groups/` with JWT auth, returns only top-level groups with children eager-loaded
+- **Alembic**: Migration config with 5 migrations (0001-0004, 0007), self-referencing workflow_groups with seed data
 - **15 unit tests** passing (security/JWT + validation engine/rules)
-- **Docker**: Full Docker Compose with 5 services
+- **Docker**: Full Docker Compose with 6 services (including frontend in dev override)
 - **Automatic migrations**: `entrypoint.sh` runs `alembic upgrade head` on startup
+- **Seed data**: Migration 0007 seeds 3 top-level groups (HR, Finance, Operations) with 8 children
 
 ### Frontend (Implemented)
 - **Frontend scaffolding**: Vite + React project initialized with all dependencies installed
@@ -67,8 +69,8 @@
 
 ## Current Status
 **Phase**: Early Development - Foundation
-**Frontend**: ~30% complete (auth + workflows connected to backend, form persistence done)
-**Backend**: ~45% complete (core, auth, validation, ingestion, Celery, Dockerized, workflow CRUD, file definitions)
+**Frontend**: ~35% complete (auth + workflows connected to backend, form persistence done)
+**Backend**: ~50% complete (core, auth, validation, ingestion, Celery, Dockerized, workflow CRUD, file definitions, self-ref groups)
 **Infrastructure**: Docker Compose ready
 
 ## Known Issues
@@ -88,7 +90,12 @@
 - Schedule Preset uses pill-shaped buttons for compact inline UX
 - useWorkflowFiles supports controlled/uncontrolled dual mode
 - Validation errors shown both inline and via toast notification
-- Migrations 0003/0004 are idempotent — safe to re-run
+- Migrations 0003/0004/0007 are idempotent — safe to re-run
 - `WorkflowService.create()` auto-creates version v1 + file definitions
 - All 14 form fields + file_definitions[] sent in a single POST payload
 - 8 new tables created to match DB diagram (workflow_file_definitions, workflow_validation_rules, workflow_approval_configs, workflow_executions, workflow_execution_files, workflow_execution_steps, workflow_execution_logs, workflow_approvals)
+- Workflow groups use self-referencing `parent_group_id` instead of separate `workflow_subgroups` table
+- Migration 0007 replaces 0005+0006 entirely (down_revision = "0004")
+- Old migration files 0005 and 0006 deleted from versions/ directory to resolve alembic "multiple heads" error
+- `WorkflowGroupRead` uses separate `WorkflowGroupChildRead` schema for children to avoid Pydantic v2 recursive serialization issues
+- `from __future__ import annotations` removed from `group.py` to prevent forward reference resolution problems
