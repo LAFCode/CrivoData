@@ -134,26 +134,39 @@ export default function WorkflowFormPage() {
     }
 
     try {
+      const payload = {
+        name: form.name,
+        slug: form.slug,
+        description: form.description,
+        status: form.status,
+        workflow_type: form.validation_type,
+        group_name: form.workflow_group_id,
+        subgroup_name: form.workflow_subgroup_id,
+        execution_type: form.execution_type,
+        recurrence_type: form.scheduling_type,
+        cron_expression: form.cron_expression,
+        timezone: form.timezone,
+        expected_files_count: form.files.length,
+        allow_empty_files: form.allow_empty_files,
+        max_error_threshold: form.max_error_threshold,
+        file_definitions: form.files.map((f, idx) => ({
+          name: f.name,
+          slug: f.pattern,
+          description: null,
+          allowed_extensions: f.allowedFormats,
+          is_required: f.required,
+          accept_multiple: false,
+          max_file_size_mb: f.maxSize,
+          validation_order: idx,
+          schema_columns: f.columns,
+          custom_rules: f.customRules,
+        })),
+      }
+
       if (savedWorkflowId) {
-        await workflowService.update(savedWorkflowId, {
-          name: form.name,
-          description: form.description,
-          status: form.status,
-          workflow_type: form.validation_type,
-          group_name: form.workflow_group_id,
-          recurrence_type: form.scheduling_type,
-          expected_files_count: form.files.length,
-        })
+        await workflowService.update(savedWorkflowId, payload)
       } else {
-        await workflowService.create({
-          name: form.name,
-          description: form.description,
-          status: form.status,
-          workflow_type: form.validation_type,
-          group_name: form.workflow_group_id,
-          recurrence_type: form.scheduling_type,
-          expected_files_count: form.files.length,
-        })
+        await workflowService.create(payload)
       }
 
       setNotification({
@@ -183,7 +196,7 @@ export default function WorkflowFormPage() {
     }
 
     setActiveStep(steps[currentIndex + 1].id)
-  }, [activeStep, form, savedWorkflowId])
+  }, [activeStep, form])
 
   // Cálculos dinâmicos para o sumário lateral baseado na tipagem camelCase
   const totalFiles = form.files.length

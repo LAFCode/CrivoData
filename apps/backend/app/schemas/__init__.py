@@ -9,6 +9,8 @@ from app.schemas.workflow import (
     WorkflowVersionRead,
     WorkflowStepCreate,
     WorkflowStepRead,
+    WorkflowFileDefinitionCreate,
+    WorkflowFileDefinitionRead,
 )
 from app.schemas.submission import (
     SubmissionCreate,
@@ -29,6 +31,8 @@ __all__ = [
     "WorkflowVersionRead",
     "WorkflowStepCreate",
     "WorkflowStepRead",
+    "WorkflowFileDefinitionCreate",
+    "WorkflowFileDefinitionRead",
     "SubmissionCreate",
     "SubmissionRead",
     "SubmissionResultRead",

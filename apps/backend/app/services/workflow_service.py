@@ -4,8 +4,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models.workflow import Workflow
-from app.schemas.workflow import WorkflowCreate, WorkflowUpdate
+from app.models.workflow import Workflow, WorkflowVersion, WorkflowFileDefinition
+from app.schemas.workflow import WorkflowCreate, WorkflowUpdate, WorkflowFileDefinitionCreate
 
 
 class WorkflowService:
@@ -31,19 +31,70 @@ class WorkflowService:
         )
         return result.scalar_one_or_none()
 
-    async def create(self, data: WorkflowCreate, owner_id: int) -> Workflow:
-        """Create a new workflow."""
+    async def create(
+        self,
+        data: WorkflowCreate,
+        owner_id: int,
+        file_definitions: list[WorkflowFileDefinitionCreate] | None = None,
+    ) -> Workflow:
+        """Create a new workflow with version and file definitions."""
         workflow = Workflow(
             name=data.name,
+            slug=data.slug,
             description=data.description,
             status=data.status,
             workflow_type=data.workflow_type,
             group_name=data.group_name,
+            subgroup_name=data.subgroup_name,
+            execution_type=data.execution_type,
             recurrence_type=data.recurrence_type,
+            cron_expression=data.cron_expression,
+            timezone=data.timezone,
             expected_files_count=data.expected_files_count,
+            allow_empty_files=data.allow_empty_files,
+            max_error_threshold=data.max_error_threshold,
             owner_id=owner_id,
         )
         self.db.add(workflow)
+        await self.db.flush()
+
+        # Create initial version (v1)
+        version = WorkflowVersion(
+            workflow_id=workflow.id,
+            version_number=1,
+            config={},
+            is_draft=True,
+        )
+        self.db.add(version)
+        await self.db.flush()
+
+        # Create file definitions from the files array
+        if file_definitions:
+            for idx, fd in enumerate(file_definitions):
+                file_def = WorkflowFileDefinition(
+                    workflow_version_id=version.id,
+                    name=fd.name,
+                    slug=fd.slug,
+                    description=fd.description,
+                    allowed_extensions=(
+                        {"formats": fd.allowed_extensions}
+                        if fd.allowed_extensions else None
+                    ),
+                    is_required=fd.is_required,
+                    accept_multiple=fd.accept_multiple,
+                    max_file_size_mb=fd.max_file_size_mb,
+                    validation_order=fd.validation_order or idx,
+                    schema_columns=(
+                        {"columns": fd.schema_columns}
+                        if fd.schema_columns else None
+                    ),
+                    custom_rules=(
+                        {"rules": fd.custom_rules}
+                        if fd.custom_rules else None
+                    ),
+                )
+                self.db.add(file_def)
+
         await self.db.flush()
         await self.db.refresh(workflow)
         return workflow

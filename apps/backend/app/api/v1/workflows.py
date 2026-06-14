@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.auth.dependencies import get_current_user
 from app.core.auth.schemas import CurrentUser
 from app.core.database import get_db
-from app.schemas.workflow import WorkflowCreate, WorkflowList, WorkflowRead, WorkflowUpdate
+from app.schemas.workflow import WorkflowCreate, WorkflowList, WorkflowRead, WorkflowUpdate, WorkflowFileDefinitionCreate
 from app.services.workflow_service import WorkflowService
 
 router = APIRouter(prefix="/workflows", tags=["workflows"])
@@ -43,9 +43,9 @@ async def create_workflow(
     current_user: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Create a new workflow."""
+    """Create a new workflow with file definitions."""
     service = WorkflowService(db)
-    workflow = await service.create(data, current_user.id)
+    workflow = await service.create(data, current_user.id, data.file_definitions)
     return workflow
 
 
